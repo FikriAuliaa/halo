@@ -1,0 +1,65 @@
+# See https://help.github.com/articles/ignoring-files/ for more about ignoring files.
+
+# dependencies
+/node_modules
+/.pnp
+.pnp.*
+.yarn/*
+!.yarn/patches
+!.yarn/plugins
+!.yarn/releases
+!.yarn/versions
+
+# testing
+/coverage
+
+# next.js
+/.next/
+/out/
+
+# production
+/build
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# env files (can opt-in for committing if needed)
+.env*
+
+# vercel
+.vercel
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
+!.env.example
+
+# Test artefacts
+/playwright-report/
+/test-results/
+/e2e/fixtures/.generated/
+/e2e/.auth/
+# Playwright visual-regression baselines are platform-specific by default
+# (filenames embed the OS) — macOS-generated baselines would falsely fail
+# every comparison on a Linux CI runner. Whoever runs this suite in CI
+# establishes baselines there with `--update-snapshots` once, on that
+# platform; committing ones generated locally would just be wrong.
+/e2e/visual.spec.ts-snapshots/
+/coverage/
+
+# Cloud Functions build output (functions has its own package.json/lockfile)
+functions/lib/
+functions/node_modules/
+
+# Firebase emulator data export
+.emulator-data/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
