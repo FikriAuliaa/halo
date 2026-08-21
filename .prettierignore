@@ -1,0 +1,11 @@
+node_modules
+.next
+out
+build
+coverage
+pnpm-lock.yaml
+
+# The planning playbook itself — reference material, not maintained code/docs.
+planning/
+0*_BLOCKS_PHASE_*.md
+06_MATRICES.md
