@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { hankenGrotesk, inter } from "@/lib/fonts";
+import { RouteFocusManager } from "@/components/route-focus-manager";
 import "./globals.css";
 
 export const metadata: Metadata = {
@@ -12,8 +14,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="id">
-      <body>{children}</body>
+    <html lang="id" className={`${hankenGrotesk.variable} ${inter.variable}`}>
+      <body className="font-body">
+        <RouteFocusManager />
+        {children}
+      </body>
     </html>
   );
 }
