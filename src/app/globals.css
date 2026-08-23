@@ -15,9 +15,10 @@
   font ever actually loaded to back it, so every "icon" rendered as its
   literal ligature text instead (e.g. the refresh button visibly showed
   the word "refresh" before its own label).
-*/
+@import url("https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap");
+
 @font-face {
-  font-family: "Material Symbols Outlined";
+  font-family: "Material Symbols Outlined Local";
   font-style: normal;
   font-weight: 100 700;
   font-display: swap;
@@ -25,7 +26,7 @@
 }
 
 .material-symbols-outlined {
-  font-family: "Material Symbols Outlined";
+  font-family: "Material Symbols Outlined", "Material Symbols Outlined Local";
   font-weight: normal;
   font-style: normal;
   font-size: 24px;
