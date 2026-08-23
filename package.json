@@ -25,6 +25,7 @@
     "db:reset": "supabase db reset",
     "seed": "tsx scripts/seed-numbers.ts",
     "seed:config": "tsx scripts/seed-config.ts",
+    "migrate": "tsx scripts/migrate.ts",
     "bootstrap-admin": "tsx scripts/bootstrap-admin.ts",
     "set-admin-role": "tsx scripts/set-admin-role.ts",
     "prepare": "husky"
