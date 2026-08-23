@@ -141,12 +141,12 @@ export function NumberActions({ number, role, onChanged }: NumberActionsProps) {
   }
 
   return (
-    <div className="flex flex-wrap gap-xs">
+    <div className="flex flex-wrap items-center gap-sm">
       {canRemove ? (
         <button
           type="button"
           onClick={() => setRemoveOpen(true)}
-          className="font-body text-body-sm text-error underline-offset-2 hover:underline"
+          className="font-body-sm cursor-pointer text-body-sm text-primary-container transition-colors hover:text-primary"
         >
           Hapus
         </button>
@@ -155,7 +155,7 @@ export function NumberActions({ number, role, onChanged }: NumberActionsProps) {
         <button
           type="button"
           onClick={() => setSoldOpen(true)}
-          className="font-body text-body-sm text-secondary underline-offset-2 hover:underline"
+          className="font-body-sm cursor-pointer text-body-sm text-on-surface-variant transition-colors hover:text-on-surface"
         >
           Tandai Terjual Offline
         </button>
@@ -164,7 +164,7 @@ export function NumberActions({ number, role, onChanged }: NumberActionsProps) {
         <button
           type="button"
           onClick={() => setReleaseOpen(true)}
-          className="font-body text-body-sm text-error underline-offset-2 hover:underline"
+          className="font-body-sm cursor-pointer text-body-sm text-primary-container transition-colors hover:text-primary"
         >
           Lepas Paksa
         </button>
@@ -172,7 +172,7 @@ export function NumberActions({ number, role, onChanged }: NumberActionsProps) {
       <button
         type="button"
         onClick={() => setCorrectOpen(true)}
-        className="font-body text-body-sm text-on-surface-variant underline-offset-2 hover:underline"
+        className="font-body-sm cursor-pointer text-body-sm text-on-surface-variant transition-colors hover:text-on-surface"
       >
         Koreksi
       </button>

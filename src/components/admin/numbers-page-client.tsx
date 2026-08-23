@@ -2,14 +2,14 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { SelectField } from "@/components/ui/select-field";
-import { TextField } from "@/components/ui/text-field";
-import { Button } from "@/components/ui/button";
 import { ErrorState } from "@/components/ui/error-state";
 import { AdminTableSkeleton } from "@/components/ui/skeletons/admin-table-skeleton";
-import { NumbersTable } from "@/components/admin/numbers-table";
 import { AddNumberDialog } from "@/components/admin/add-number-dialog";
 import { BulkAddDialog } from "@/components/admin/bulk-add-dialog";
+import { NumberActions } from "@/components/admin/number-actions";
+import { getEffectiveStatus } from "@/domain/number-status";
+import { formatPhoneDisplay } from "@/domain/phone";
+import { formatDateTimeJakarta } from "@/lib/format";
 import type { AdminRole } from "@/schemas/admin";
 import type { NumberRow } from "@/server/db/types";
 
@@ -19,17 +19,12 @@ const PAGE_SIZE = 25;
 const STATUS_OPTIONS = [
   { value: "all", label: "Semua Status" },
   { value: "available", label: "Tersedia" },
-  { value: "reserved", label: "Direservasi" },
+  { value: "reserved", label: "Terkunci / Reserved" },
   { value: "pending", label: "Menunggu Pembayaran" },
   { value: "sold", label: "Terjual" },
   { value: "sold_offline", label: "Terjual Offline" },
 ];
 
-/** Deserializes the JSON response back into real `NumberRow`s — date
- * fields arrive as ISO strings over the wire, but `getEffectiveStatus`/
- * `canTransition` (used by the table and row actions) are typed against
- * genuine `Date`s, and a raw string compared with `<=` against a `Date`
- * doesn't do what it looks like it does. */
 function parseNumberRow(json: Record<string, unknown>): NumberRow {
   const asDate = (v: unknown) => (v ? new Date(v as string) : null);
   return {
@@ -119,73 +114,279 @@ export function NumbersPageClient({ role }: { role: AdminRole }) {
   }
 
   const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+  const now = new Date();
 
   return (
-    <div className="flex flex-col gap-lg">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-headline-lg text-on-surface">Nomor</h1>
+    <div className="flex w-full flex-col gap-lg">
+      {/* Header Section (Desktop) */}
+      <div className="mb-sm hidden items-end justify-between md:flex">
+        <div>
+          <h2 className="font-display-lg inline-block border-b-2 border-primary-container pb-1 text-display-lg leading-none text-on-surface">
+            Nomor
+          </h2>
+        </div>
         <div className="flex gap-sm">
-          <Button variant="secondary" onClick={() => setAddOpen(true)}>
+          <button
+            type="button"
+            onClick={() => setAddOpen(true)}
+            className="font-title-md hover:bg-surface-variant flex cursor-pointer items-center gap-xs rounded-full border border-outline px-md py-sm text-title-md text-on-surface transition-colors"
+          >
+            <span className="material-symbols-outlined text-[20px]">add_circle</span>
             Tambah Nomor
-          </Button>
-          <Button variant="primary" onClick={() => setBulkOpen(true)}>
+          </button>
+          <button
+            type="button"
+            onClick={() => setBulkOpen(true)}
+            className="font-title-md flex cursor-pointer items-center gap-xs rounded-full bg-primary-container px-md py-sm text-title-md text-on-primary-container shadow-[0_4px_14px_rgba(237,2,38,0.4)] transition-colors hover:bg-primary-container/90"
+          >
+            <span className="material-symbols-outlined text-[20px]">format_list_bulleted_add</span>
             Tambah Massal
-          </Button>
+          </button>
         </div>
       </div>
 
-      <div className="flex flex-col gap-sm md:flex-row md:items-end">
-        <div className="md:w-64">
-          <SelectField
-            label="Status"
-            value={status}
-            onValueChange={(value) => updateParams({ status: value, page: "1" })}
-            options={STATUS_OPTIONS}
-          />
+      {/* Action Buttons (Mobile) */}
+      <div className="mb-xs flex gap-sm md:hidden">
+        <button
+          type="button"
+          onClick={() => setAddOpen(true)}
+          className="font-title-md flex flex-1 items-center justify-center gap-xs rounded-lg border border-outline-variant bg-surface-container px-sm py-sm text-title-md text-on-surface"
+        >
+          <span className="material-symbols-outlined text-primary-container">add_circle</span>
+          Tambah Nomor
+        </button>
+        <button
+          type="button"
+          onClick={() => setBulkOpen(true)}
+          className="font-title-md flex flex-1 items-center justify-center gap-xs rounded-lg border border-outline-variant bg-surface-container px-sm py-sm text-title-md text-on-surface"
+        >
+          <span className="material-symbols-outlined text-primary-container">
+            format_list_bulleted_add
+          </span>
+          Tambah Massal
+        </button>
+      </div>
+
+      {/* Filters & Search */}
+      <div className="flex w-full flex-col items-start gap-md md:flex-row md:items-end">
+        <div className="relative w-full md:w-56">
+          <label className="font-body-sm mb-1 block text-body-sm text-on-surface-variant">
+            Status
+          </label>
+          <div className="relative">
+            <select
+              value={status}
+              onChange={(e) => updateParams({ status: e.target.value, page: "1" })}
+              className="font-body-lg w-full cursor-pointer appearance-none rounded-t-md border-b-2 border-outline-variant bg-surface-container py-sm pl-sm pr-lg text-body-lg text-on-surface transition-colors focus:border-primary-container focus:outline-none focus:ring-0"
+            >
+              {STATUS_OPTIONS.map((opt) => (
+                <option
+                  key={opt.value}
+                  value={opt.value}
+                  className="bg-surface-container text-on-surface"
+                >
+                  {opt.label}
+                </option>
+              ))}
+            </select>
+            <span className="material-symbols-outlined pointer-events-none absolute right-sm top-1/2 -translate-y-1/2 text-on-surface-variant">
+              expand_more
+            </span>
+          </div>
         </div>
-        <div className="flex-1">
-          <TextField
-            label="Cari Nomor"
-            placeholder="Cari digit nomor"
-            value={searchInput}
-            onChange={(e) => handleSearchChange(e.target.value)}
-          />
+
+        <div className="relative w-full flex-1">
+          <label className="font-body-sm mb-1 hidden text-body-sm text-on-surface-variant md:block">
+            Cari Nomor
+          </label>
+          <div className="relative">
+            <span className="material-symbols-outlined absolute left-sm top-1/2 -translate-y-1/2 text-on-surface-variant">
+              search
+            </span>
+            <input
+              type="text"
+              value={searchInput}
+              onChange={(e) => handleSearchChange(e.target.value)}
+              placeholder="Cari digit nomor..."
+              className="font-body-lg w-full rounded-t-md border-b-2 border-outline-variant bg-surface-container py-sm pl-xl pr-sm text-body-lg text-on-surface transition-colors placeholder:text-on-surface-variant/50 focus:border-primary-container focus:outline-none focus:ring-0"
+            />
+          </div>
         </div>
       </div>
 
+      {/* Main Content: Table or Cards */}
       {state === "error" ? (
         <ErrorState variant="server" onRetry={() => void fetchNumbers()} />
       ) : state === "loading" ? (
         <AdminTableSkeleton columns={6} />
+      ) : numbers.length === 0 ? (
+        <div className="rounded-xl border border-outline-variant bg-surface-container p-xl text-center text-on-surface-variant">
+          Tidak ada nomor yang cocok dengan filter.
+        </div>
       ) : (
         <>
-          <NumbersTable
-            numbers={numbers}
-            role={role}
-            sortField={sortField}
-            sortDirection={sortDirection}
-            onSort={handleSort}
-            onChanged={() => void fetchNumbers()}
-          />
-          <div className="flex items-center justify-between font-body text-body-sm text-on-surface-variant">
+          {/* Data Table (Desktop View) */}
+          <div className="mt-sm hidden overflow-x-auto rounded-xl border border-outline-variant bg-surface-container-low shadow-lg md:block">
+            <table className="w-full border-collapse text-left">
+              <thead>
+                <tr className="border-b border-outline-variant bg-surface-container">
+                  <th className="font-label-bold px-md py-sm text-label-bold uppercase tracking-wider text-on-surface-variant">
+                    Nomor
+                  </th>
+                  <th className="font-label-bold px-md py-sm text-label-bold uppercase tracking-wider text-on-surface-variant">
+                    Status
+                  </th>
+                  <th className="font-label-bold px-md py-sm text-label-bold uppercase tracking-wider text-on-surface-variant">
+                    Reservasi
+                  </th>
+                  <th className="font-label-bold px-md py-sm text-label-bold uppercase tracking-wider text-on-surface-variant">
+                    Terjual
+                  </th>
+                  <th
+                    onClick={() => handleSort("updated_at")}
+                    className="font-label-bold cursor-pointer select-none px-md py-sm text-label-bold uppercase tracking-wider text-on-surface-variant hover:text-on-surface"
+                  >
+                    <div className="flex items-center gap-1">
+                      Diperbarui
+                      <span className="material-symbols-outlined text-[16px]">
+                        {sortDirection === "asc" ? "arrow_upward" : "arrow_downward"}
+                      </span>
+                    </div>
+                  </th>
+                  <th className="font-label-bold px-md py-sm text-label-bold uppercase tracking-wider text-on-surface-variant">
+                    Aksi
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="font-body-sm text-body-sm">
+                {numbers.map((n) => {
+                  const effective = getEffectiveStatus(n, now);
+                  const isAvailable = effective === "available";
+                  const isReserved = effective === "reserved" || n.status === "pending";
+
+                  return (
+                    <tr
+                      key={n.number}
+                      className="border-b border-outline-variant/50 transition-colors hover:bg-surface-container-highest/40"
+                    >
+                      <td className="font-title-md whitespace-nowrap px-md py-md text-title-md text-on-surface">
+                        {formatPhoneDisplay(n.number)}
+                      </td>
+                      <td className="whitespace-nowrap px-md py-md">
+                        {isAvailable ? (
+                          <span className="bg-surface-variant text-status-success font-label-bold inline-flex rounded-full border border-outline px-sm py-1 text-label-bold uppercase tracking-wider">
+                            Tersedia
+                          </span>
+                        ) : isReserved ? (
+                          <span className="font-label-bold inline-flex rounded-full border border-secondary-container bg-secondary-container/20 px-sm py-1 text-label-bold uppercase tracking-wider text-secondary-container">
+                            {effective === "pending" ? "Menunggu Bayar" : "Terkunci"}
+                          </span>
+                        ) : (
+                          <span className="font-label-bold inline-flex rounded-full border border-outline-variant bg-surface-container px-sm py-1 text-label-bold uppercase tracking-wider text-on-surface-variant">
+                            {effective === "sold_offline" ? "Terjual Offline" : "Terjual"}
+                          </span>
+                        )}
+                      </td>
+                      <td className="whitespace-nowrap px-md py-md text-on-surface-variant">
+                        {n.reserved_until ? formatDateTimeJakarta(n.reserved_until) : "—"}
+                      </td>
+                      <td className="whitespace-nowrap px-md py-md text-on-surface-variant">
+                        {n.sold_at ? formatDateTimeJakarta(n.sold_at) : "—"}
+                      </td>
+                      <td className="whitespace-nowrap px-md py-md text-on-surface-variant">
+                        {formatDateTimeJakarta(n.updated_at)}
+                      </td>
+                      <td className="whitespace-nowrap px-md py-md">
+                        <NumberActions
+                          number={n}
+                          role={role}
+                          onChanged={() => void fetchNumbers()}
+                        />
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+
+          {/* List View (Mobile View) */}
+          <div className="flex flex-col gap-sm md:hidden">
+            {numbers.map((n) => {
+              const effective = getEffectiveStatus(n, now);
+              const isAvailable = effective === "available";
+              const isReserved = effective === "reserved" || n.status === "pending";
+
+              return (
+                <div
+                  key={n.number}
+                  className={`relative overflow-hidden rounded-xl border-l-4 bg-surface-container p-md shadow-md ${
+                    isAvailable
+                      ? "border-l-primary-container"
+                      : isReserved
+                        ? "border-l-secondary-container"
+                        : "border-l-outline-variant"
+                  }`}
+                >
+                  <div className="mb-sm flex items-start justify-between">
+                    <div>
+                      <h3 className="font-title-md text-title-md text-on-surface">
+                        {formatPhoneDisplay(n.number)}
+                      </h3>
+                      <span
+                        className={`font-label-bold mt-1 block text-label-bold uppercase tracking-wider ${
+                          isAvailable
+                            ? "text-status-success"
+                            : isReserved
+                              ? "text-secondary-container"
+                              : "text-on-surface-variant"
+                        }`}
+                      >
+                        {isAvailable
+                          ? "Tersedia"
+                          : isReserved
+                            ? "Terkunci"
+                            : effective === "sold_offline"
+                              ? "Terjual Offline"
+                              : "Terjual"}
+                      </span>
+                    </div>
+                    {n.reserved_until && (
+                      <div className="text-right">
+                        <span className="font-body-sm block text-body-sm text-on-surface-variant">
+                          Hingga {formatDateTimeJakarta(n.reserved_until)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex justify-end gap-sm border-t border-outline-variant/30 pt-xs">
+                    <NumberActions number={n} role={role} onChanged={() => void fetchNumbers()} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Pagination */}
+          <div className="flex items-center justify-between px-xs font-body text-body-sm text-on-surface-variant">
             <span>{total} nomor</span>
             <div className="flex items-center gap-sm">
               <button
                 type="button"
                 disabled={page <= 1}
                 onClick={() => updateParams({ page: String(page - 1) })}
-                className="disabled:opacity-40"
+                className="rounded border border-outline-variant bg-surface-container px-sm py-xs text-on-surface disabled:opacity-40"
               >
                 Sebelumnya
               </button>
               <span>
-                Halaman {page} dari {totalPages}
+                {page} / {totalPages}
               </span>
               <button
                 type="button"
                 disabled={page >= totalPages}
                 onClick={() => updateParams({ page: String(page + 1) })}
-                className="disabled:opacity-40"
+                className="rounded border border-outline-variant bg-surface-container px-sm py-xs text-on-surface disabled:opacity-40"
               >
                 Berikutnya
               </button>
