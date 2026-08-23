@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { MetricCard } from "@/components/admin/metric-card";
 import { AlertsPanel } from "@/components/admin/alerts-panel";
-import { OrderStatusBadge } from "@/components/ui/status-badge";
 import { formatDateTimeJakarta } from "@/lib/format";
 import { formatPhoneDisplay } from "@/domain/phone";
 import { adminGetDashboardMetrics } from "@/server/operations/admin/dashboard-metrics";
@@ -10,109 +9,139 @@ export default async function AdminDashboardPage() {
   const metrics = await adminGetDashboardMetrics();
 
   return (
-    <div className="flex flex-col gap-lg">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-headline-lg text-on-surface">Dashboard</h1>
-        <span className="font-body text-body-sm text-on-surface-variant">
+    <div className="flex w-full flex-col gap-lg">
+      {/* Header */}
+      <div className="mb-sm flex items-center justify-between">
+        <h2 className="font-display-lg text-display-lg text-on-surface">Dashboard Overview</h2>
+        <span className="font-body-sm text-body-sm text-on-surface-variant">
           Diperbarui {formatDateTimeJakarta(new Date(metrics.generated_at))}
         </span>
       </div>
 
+      {/* System Alerts */}
       <AlertsPanel
         stalePendingOrders={metrics.alerts.stale_pending_orders}
         cleanupJobStale={metrics.alerts.cleanup_job_stale}
         cleanupJobLastRunMinutesAgo={metrics.alerts.cleanup_job_last_run_minutes_ago}
       />
 
-      <div className="grid grid-cols-2 gap-sm md:grid-cols-3">
-        <MetricCard label="Menunggu Verifikasi" value={metrics.orders_pending} primary />
-        <MetricCard label="Diverifikasi Hari Ini" value={metrics.orders_verified_today} />
-        <MetricCard label="Ditolak Hari Ini" value={metrics.orders_rejected_today} />
-        <MetricCard label="Nomor Tersedia" value={metrics.numbers.available} />
-        <MetricCard label="Nomor Direservasi" value={metrics.numbers.reserved} />
+      {/* Metrics Grid (Bento style) */}
+      <div className="mb-xl grid grid-cols-1 gap-md md:grid-cols-2 lg:grid-cols-3">
+        <MetricCard
+          label="Menunggu Verifikasi"
+          value={metrics.orders_pending}
+          icon="schedule"
+          primary
+        />
+        <MetricCard
+          label="Diverifikasi Hari Ini"
+          value={metrics.orders_verified_today}
+          icon="check_circle"
+        />
+        <MetricCard label="Ditolak Hari Ini" value={metrics.orders_rejected_today} icon="cancel" />
+        <MetricCard label="Nomor Tersedia" value={metrics.numbers.available} icon="phone_in_talk" />
+        <MetricCard
+          label="Nomor Direservasi"
+          value={metrics.numbers.reserved}
+          icon="event_available"
+        />
         <MetricCard
           label="Nomor Terjual"
           value={metrics.numbers.sold + metrics.numbers.sold_offline}
+          icon="sell"
         />
       </div>
 
-      <div className="flex flex-col gap-sm">
-        <h2 className="font-display text-title-md text-on-surface">Pesanan Terbaru</h2>
-        <div className="overflow-x-auto rounded-card border border-outline-variant">
-          <table className="w-full text-left">
-            <thead className="bg-surface-container-high">
-              <tr>
-                <th
-                  scope="col"
-                  className="px-sm py-sm font-body text-body-sm text-on-surface-variant"
-                >
-                  Referensi
+      {/* Data Table Section: Recent Orders */}
+      <div className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container shadow-lg">
+        <div className="border-b border-outline-variant p-lg">
+          <h3 className="font-title-md text-title-md text-on-surface">Pesanan Terbaru</h3>
+        </div>
+        <div className="overflow-x-auto">
+          <table className="w-full border-collapse text-left">
+            <thead>
+              <tr className="border-b border-outline-variant bg-surface-container-high">
+                <th className="font-label-bold px-lg py-sm text-label-bold uppercase tracking-wider text-on-surface-variant">
+                  Phone Number
                 </th>
-                <th
-                  scope="col"
-                  className="px-sm py-sm font-body text-body-sm text-on-surface-variant"
-                >
-                  Nomor
+                <th className="font-label-bold px-lg py-sm text-label-bold uppercase tracking-wider text-on-surface-variant">
+                  Customer Name
                 </th>
-                <th
-                  scope="col"
-                  className="px-sm py-sm font-body text-body-sm text-on-surface-variant"
-                >
-                  Nama
-                </th>
-                <th
-                  scope="col"
-                  className="px-sm py-sm font-body text-body-sm text-on-surface-variant"
-                >
+                <th className="font-label-bold px-lg py-sm text-label-bold uppercase tracking-wider text-on-surface-variant">
                   Status
                 </th>
-                <th
-                  scope="col"
-                  className="px-sm py-sm font-body text-body-sm text-on-surface-variant"
-                >
-                  Diajukan
+                <th className="font-label-bold px-lg py-sm text-label-bold uppercase tracking-wider text-on-surface-variant">
+                  Date
                 </th>
               </tr>
             </thead>
-            <tbody>
-              {metrics.recent_orders.map((order) => (
-                <tr key={order.id} className="border-t border-outline-variant">
-                  <td className="px-sm py-sm">
-                    <Link
-                      href={`/admin/pesanan/${order.id}`}
-                      className="font-body text-body-sm text-secondary"
-                    >
-                      {order.order_ref}
-                    </Link>
-                  </td>
-                  <td className="px-sm py-sm font-body text-body-sm text-on-surface">
-                    {formatPhoneDisplay(order.number)}
-                  </td>
-                  <td className="px-sm py-sm font-body text-body-sm text-on-surface">
-                    {order.full_name}
-                  </td>
-                  <td className="px-sm py-sm">
-                    <OrderStatusBadge
-                      status={order.status as "pending" | "verified" | "rejected"}
-                    />
-                  </td>
-                  <td className="px-sm py-sm font-body text-body-sm text-on-surface-variant">
-                    {formatDateTimeJakarta(new Date(order.submitted_at))}
-                  </td>
-                </tr>
-              ))}
+            <tbody className="divide-y divide-outline-variant/50">
+              {metrics.recent_orders.map((order) => {
+                const isVerified = order.status === "verified";
+                const isPending = order.status === "pending";
+                const isRejected = order.status === "rejected";
+
+                return (
+                  <tr
+                    key={order.id}
+                    className="transition-colors hover:bg-surface-container-highest/60"
+                  >
+                    <td className="font-body-sm whitespace-nowrap px-lg py-md text-on-surface">
+                      <Link
+                        href={`/admin/pesanan/${order.id}`}
+                        className="font-title-md text-title-md text-on-surface hover:text-primary hover:underline"
+                      >
+                        {formatPhoneDisplay(order.number)}
+                      </Link>
+                    </td>
+                    <td className="font-body-sm whitespace-nowrap px-lg py-md text-on-surface">
+                      {order.full_name}
+                    </td>
+                    <td className="whitespace-nowrap px-lg py-md">
+                      {isVerified ? (
+                        <span className="inline-flex items-center rounded-full bg-[#1B3B24] px-2.5 py-1 text-xs font-bold text-[#81C784]">
+                          Diverifikasi
+                        </span>
+                      ) : isPending ? (
+                        <span className="inline-flex items-center rounded-full bg-[#4B3A14] px-2.5 py-1 text-xs font-bold text-[#FFD54F]">
+                          Menunggu Verifikasi
+                        </span>
+                      ) : isRejected ? (
+                        <span className="inline-flex items-center rounded-full bg-error-container px-2.5 py-1 text-xs font-bold text-error">
+                          Ditolak
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center rounded-full bg-surface-container-high px-2.5 py-1 text-xs font-bold text-on-surface-variant">
+                          {order.status}
+                        </span>
+                      )}
+                    </td>
+                    <td className="font-body-sm whitespace-nowrap px-lg py-md text-on-surface-variant">
+                      {formatDateTimeJakarta(new Date(order.submitted_at))}
+                    </td>
+                  </tr>
+                );
+              })}
               {metrics.recent_orders.length === 0 ? (
                 <tr>
                   <td
-                    colSpan={5}
-                    className="px-sm py-md text-center font-body text-body-sm text-on-surface-variant"
+                    colSpan={4}
+                    className="font-body-sm px-lg py-lg text-center text-on-surface-variant"
                   >
-                    Belum ada pesanan.
+                    Belum ada pesanan terbaru.
                   </td>
                 </tr>
               ) : null}
             </tbody>
           </table>
+        </div>
+        <div className="flex justify-end border-t border-outline-variant bg-surface-container-low p-sm">
+          <Link
+            href="/admin/pesanan"
+            className="hover:text-primary-fixed flex items-center gap-1 px-sm py-xs text-sm font-bold text-primary transition-colors"
+          >
+            View All <span className="material-symbols-outlined text-sm">arrow_forward</span>
+          </Link>
         </div>
       </div>
     </div>
