@@ -1,10 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { ErrorState } from "@/components/ui/error-state";
-import { INPUT_CLASSES } from "@/components/ui/text-field";
 import { useToast } from "@/hooks/use-toast";
 
 interface UniversityEntry {
@@ -12,14 +9,6 @@ interface UniversityEntry {
   active: boolean;
 }
 
-/**
- * `/admin/konfigurasi/kampus` (B111) — full-document replace, same
- * model as the packages screen. No delete button: removing an entry
- * from the list here *is* the delete, and the server refuses it (leaving
- * the list unchanged) if any order references that name — the error
- * names which one, so "deactivate instead" is a next, obvious step
- * rather than a dead end.
- */
 export default function UniversitiesConfigPage() {
   const { showToast } = useToast();
   const [list, setList] = useState<UniversityEntry[]>([]);
@@ -90,66 +79,88 @@ export default function UniversitiesConfigPage() {
       <div
         role="status"
         aria-busy="true"
-        className="font-body text-body-sm text-on-surface-variant"
+        className="p-xl text-center font-body text-body-sm text-on-surface-variant"
       >
-        Memuat…
+        Memuat daftar universitas...
       </div>
     );
   }
 
   return (
-    <div className="flex flex-col gap-lg">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-headline-lg text-on-surface">Konfigurasi Universitas</h1>
-        <Button
-          variant="primary"
+    <div className="mx-auto flex w-full max-w-[1200px] flex-col gap-lg">
+      {/* Header */}
+      <header className="mb-sm flex flex-col justify-between gap-md sm:flex-row sm:items-center">
+        <h2 className="font-display-lg text-display-lg text-on-surface">Konfigurasi Universitas</h2>
+        <button
+          type="button"
           onClick={() => void handleSave()}
-          loading={saving}
-          disabled={!dirty}
+          disabled={!dirty || saving}
+          className="font-title-md cursor-pointer rounded-full border border-outline-variant bg-surface-container-high px-lg py-sm text-title-md text-on-surface transition-colors hover:border-primary hover:bg-surface-bright disabled:opacity-40"
         >
-          Simpan Perubahan
-        </Button>
+          {saving ? "Memproses..." : "Simpan Perubahan"}
+        </button>
+      </header>
+
+      {/* Configuration Card */}
+      <div className="relative overflow-hidden rounded-xl border border-outline-variant bg-surface-container shadow-2xl">
+        <div className="pointer-events-none absolute inset-0 bg-gradient-to-b from-[#4A0000]/20 to-transparent" />
+        <div className="relative z-10 flex flex-col gap-0 p-md sm:p-lg">
+          {list.map((u, index) => (
+            <div
+              key={u.name}
+              className="hover:bg-surface-variant/50 group -mx-sm flex items-center justify-between rounded-lg border-b border-[#2A2A2A] px-sm py-md transition-colors last:border-b-0"
+            >
+              <span className="font-title-md text-title-md text-on-surface">{u.name}</span>
+              <div className="flex items-center gap-md">
+                <label className="flex cursor-pointer select-none items-center gap-sm transition-colors group-hover:text-primary">
+                  <input
+                    type="checkbox"
+                    checked={u.active}
+                    onChange={(e) => updateEntry(index, { active: e.target.checked })}
+                    className="form-checkbox h-5 w-5 rounded border-outline-variant bg-surface-container-lowest text-primary-container focus:ring-primary focus:ring-offset-background"
+                  />
+                  <span className="font-label-bold text-label-bold uppercase">Aktif</span>
+                </label>
+                <button
+                  type="button"
+                  onClick={() => removeEntry(index)}
+                  className="font-body-sm cursor-pointer text-body-sm text-on-surface-variant transition-colors hover:text-error"
+                >
+                  Hapus
+                </button>
+              </div>
+            </div>
+          ))}
+          {list.length === 0 ? (
+            <p className="font-body-sm py-md text-center text-body-sm text-on-surface-variant">
+              Belum ada universitas. Tambahkan nama universitas di bawah.
+            </p>
+          ) : null}
+        </div>
       </div>
 
-      <Card className="flex flex-col gap-sm">
-        {list.map((u, index) => (
-          <div
-            key={u.name}
-            className="flex items-center gap-sm border-t border-outline-variant py-sm first:border-t-0"
-          >
-            <span className="flex-1 font-body text-body-lg text-on-surface">{u.name}</span>
-            <label className="flex items-center gap-xs font-body text-body-sm text-on-surface">
-              <input
-                type="checkbox"
-                checked={u.active}
-                onChange={(e) => updateEntry(index, { active: e.target.checked })}
-              />
-              Aktif
-            </label>
-            <button
-              type="button"
-              onClick={() => removeEntry(index)}
-              className="font-body text-body-sm text-error underline-offset-2 hover:underline"
-            >
-              Hapus
-            </button>
-          </div>
-        ))}
-        {list.length === 0 ? (
-          <p className="font-body text-body-sm text-on-surface-variant">Belum ada universitas.</p>
-        ) : null}
-      </Card>
-
-      <div className="flex gap-sm">
-        <input
-          className={INPUT_CLASSES}
-          placeholder="Nama universitas baru"
-          value={newName}
-          onChange={(e) => setNewName(e.target.value)}
-        />
-        <Button variant="secondary" onClick={addEntry} disabled={!newName.trim()}>
+      {/* Add New Field */}
+      <div className="mt-md flex w-full flex-col items-start gap-sm sm:flex-row sm:items-center">
+        <div className="relative w-full flex-1">
+          <input
+            type="text"
+            placeholder="Nama universitas baru"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") addEntry();
+            }}
+            className="font-body-lg w-full rounded-t-md border-b-2 border-[#2A2A2A] bg-surface-container-low p-sm text-on-surface outline-none transition-colors placeholder:text-on-surface-variant focus:border-primary-container focus:ring-0"
+          />
+        </div>
+        <button
+          type="button"
+          onClick={addEntry}
+          disabled={!newName.trim()}
+          className="font-title-md w-full cursor-pointer rounded-full border border-outline-variant bg-transparent px-lg py-sm text-title-md text-on-surface transition-colors hover:border-primary-container hover:bg-primary-container/10 disabled:opacity-40 sm:w-auto"
+        >
           Tambah
-        </Button>
+        </button>
       </div>
     </div>
   );
