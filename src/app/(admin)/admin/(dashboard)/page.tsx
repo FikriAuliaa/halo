@@ -9,73 +9,102 @@ export default async function AdminDashboardPage() {
   const metrics = await adminGetDashboardMetrics();
 
   return (
-    <div className="flex w-full flex-col gap-lg">
-      {/* Header */}
-      <div className="mb-sm flex items-center justify-between">
-        <h2 className="font-display-lg text-display-lg text-on-surface">Dashboard Overview</h2>
+    <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-xl">
+      {/* Top Header info */}
+      <div className="flex items-center justify-between">
+        <h2 className="font-display-lg text-headline-lg font-semibold text-on-surface">
+          Dashboard Overview
+        </h2>
         <span className="font-body-sm text-body-sm text-on-surface-variant">
           Diperbarui {formatDateTimeJakarta(new Date(metrics.generated_at))}
         </span>
       </div>
 
-      {/* System Alerts */}
+      {/* Alerts Section */}
       <AlertsPanel
         stalePendingOrders={metrics.alerts.stale_pending_orders}
         cleanupJobStale={metrics.alerts.cleanup_job_stale}
         cleanupJobLastRunMinutesAgo={metrics.alerts.cleanup_job_last_run_minutes_ago}
       />
 
-      {/* Metrics Grid (Bento style) */}
-      <div className="mb-xl grid grid-cols-1 gap-md md:grid-cols-2 lg:grid-cols-3">
+      {/* Metrics Grid */}
+      <div className="grid grid-cols-1 gap-md sm:grid-cols-2 lg:grid-cols-3 lg:gap-lg">
         <MetricCard
           label="Menunggu Verifikasi"
           value={metrics.orders_pending}
-          icon="schedule"
-          primary
+          variant="pending"
+          unit="Pesanan"
         />
         <MetricCard
           label="Diverifikasi Hari Ini"
           value={metrics.orders_verified_today}
-          icon="check_circle"
+          variant="verified"
+          unit="Pesanan"
         />
-        <MetricCard label="Ditolak Hari Ini" value={metrics.orders_rejected_today} icon="cancel" />
-        <MetricCard label="Nomor Tersedia" value={metrics.numbers.available} icon="phone_in_talk" />
+        <MetricCard
+          label="Ditolak Hari Ini"
+          value={metrics.orders_rejected_today}
+          variant="rejected"
+          unit="Pesanan"
+        />
+        <MetricCard
+          label="Nomor Tersedia"
+          value={metrics.numbers.available}
+          variant="available"
+          unit="Nomor"
+        />
         <MetricCard
           label="Nomor Direservasi"
           value={metrics.numbers.reserved}
-          icon="event_available"
+          variant="reserved"
+          unit="Nomor"
         />
         <MetricCard
           label="Nomor Terjual"
           value={metrics.numbers.sold + metrics.numbers.sold_offline}
-          icon="sell"
+          variant="sold"
+          unit="Nomor"
         />
       </div>
 
-      {/* Data Table Section: Recent Orders */}
-      <div className="overflow-hidden rounded-xl border border-outline-variant bg-surface-container shadow-lg">
-        <div className="border-b border-outline-variant p-lg">
-          <h3 className="font-title-md text-title-md text-on-surface">Pesanan Terbaru</h3>
+      {/* Recent Orders Section */}
+      <section className="glass-card flex flex-1 flex-col overflow-hidden rounded-xl border border-outline-variant/30">
+        <div className="flex items-center justify-between border-b border-outline-variant/30 bg-surface-container-low/50 p-lg">
+          <div className="flex items-center gap-sm">
+            <span className="material-symbols-outlined text-primary-container">list_alt</span>
+            <h3 className="font-title-md text-title-md font-semibold text-on-surface">
+              Pesanan Terbaru
+            </h3>
+          </div>
+          <Link
+            href="/admin/pesanan"
+            className="font-label-bold flex items-center gap-1 text-label-bold uppercase tracking-wider text-on-surface-variant transition-colors hover:text-primary-container"
+          >
+            Lihat Semua <span className="material-symbols-outlined text-sm">arrow_forward</span>
+          </Link>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-left">
             <thead>
-              <tr className="border-b border-outline-variant bg-surface-container-high">
-                <th className="font-label-bold px-lg py-sm text-label-bold uppercase tracking-wider text-on-surface-variant">
-                  Phone Number
+              <tr className="border-b border-outline-variant/50 bg-surface-container/50">
+                <th className="font-label-bold p-md text-label-bold uppercase tracking-wider text-on-surface-variant">
+                  Referensi
                 </th>
-                <th className="font-label-bold px-lg py-sm text-label-bold uppercase tracking-wider text-on-surface-variant">
-                  Customer Name
+                <th className="font-label-bold p-md text-label-bold uppercase tracking-wider text-on-surface-variant">
+                  Nomor
                 </th>
-                <th className="font-label-bold px-lg py-sm text-label-bold uppercase tracking-wider text-on-surface-variant">
+                <th className="font-label-bold p-md text-label-bold uppercase tracking-wider text-on-surface-variant">
+                  Nama
+                </th>
+                <th className="font-label-bold p-md text-label-bold uppercase tracking-wider text-on-surface-variant">
                   Status
                 </th>
-                <th className="font-label-bold px-lg py-sm text-label-bold uppercase tracking-wider text-on-surface-variant">
-                  Date
+                <th className="font-label-bold p-md text-label-bold uppercase tracking-wider text-on-surface-variant">
+                  Diajukan
                 </th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-outline-variant/50">
+            <tbody className="font-body-sm divide-y divide-outline-variant/20 text-body-sm">
               {metrics.recent_orders.map((order) => {
                 const isVerified = order.status === "verified";
                 const isPending = order.status === "pending";
@@ -84,30 +113,28 @@ export default async function AdminDashboardPage() {
                 return (
                   <tr
                     key={order.id}
-                    className="transition-colors hover:bg-surface-container-highest/60"
+                    className="hover:bg-surface-variant/30 group cursor-pointer transition-colors"
                   >
-                    <td className="font-body-sm whitespace-nowrap px-lg py-md text-on-surface">
-                      <Link
-                        href={`/admin/pesanan/${order.id}`}
-                        className="font-title-md text-title-md text-on-surface hover:text-primary hover:underline"
-                      >
-                        {formatPhoneDisplay(order.number)}
+                    <td className="p-md font-mono text-xs font-semibold text-on-surface">
+                      <Link href={`/admin/pesanan/${order.id}`} className="hover:underline">
+                        {order.order_ref}
                       </Link>
                     </td>
-                    <td className="font-body-sm whitespace-nowrap px-lg py-md text-on-surface">
-                      {order.full_name}
+                    <td className="p-md font-semibold text-primary-container">
+                      {formatPhoneDisplay(order.number)}
                     </td>
-                    <td className="whitespace-nowrap px-lg py-md">
+                    <td className="p-md text-on-surface">{order.full_name}</td>
+                    <td className="p-md">
                       {isVerified ? (
-                        <span className="inline-flex items-center rounded-full bg-[#1B3B24] px-2.5 py-1 text-xs font-bold text-[#81C784]">
+                        <span className="text-primary-fixed inline-flex items-center rounded-full border border-primary-container/50 bg-primary-container/20 px-2.5 py-1 text-xs font-bold">
                           Diverifikasi
                         </span>
                       ) : isPending ? (
-                        <span className="inline-flex items-center rounded-full bg-[#4B3A14] px-2.5 py-1 text-xs font-bold text-[#FFD54F]">
+                        <span className="inline-flex items-center rounded-full border border-secondary-container/30 bg-secondary-container/20 px-2.5 py-1 text-xs font-bold text-secondary-container">
                           Menunggu Verifikasi
                         </span>
                       ) : isRejected ? (
-                        <span className="inline-flex items-center rounded-full bg-error-container px-2.5 py-1 text-xs font-bold text-error">
+                        <span className="inline-flex items-center rounded-full border border-error/30 bg-error/20 px-2.5 py-1 text-xs font-bold text-error">
                           Ditolak
                         </span>
                       ) : (
@@ -116,7 +143,7 @@ export default async function AdminDashboardPage() {
                         </span>
                       )}
                     </td>
-                    <td className="font-body-sm whitespace-nowrap px-lg py-md text-on-surface-variant">
+                    <td className="p-md text-on-surface-variant">
                       {formatDateTimeJakarta(new Date(order.submitted_at))}
                     </td>
                   </tr>
@@ -124,10 +151,7 @@ export default async function AdminDashboardPage() {
               })}
               {metrics.recent_orders.length === 0 ? (
                 <tr>
-                  <td
-                    colSpan={4}
-                    className="font-body-sm px-lg py-lg text-center text-on-surface-variant"
-                  >
+                  <td colSpan={5} className="font-body-sm p-lg text-center text-on-surface-variant">
                     Belum ada pesanan terbaru.
                   </td>
                 </tr>
@@ -135,15 +159,7 @@ export default async function AdminDashboardPage() {
             </tbody>
           </table>
         </div>
-        <div className="flex justify-end border-t border-outline-variant bg-surface-container-low p-sm">
-          <Link
-            href="/admin/pesanan"
-            className="hover:text-primary-fixed flex items-center gap-1 px-sm py-xs text-sm font-bold text-primary transition-colors"
-          >
-            View All <span className="material-symbols-outlined text-sm">arrow_forward</span>
-          </Link>
-        </div>
-      </div>
+      </section>
     </div>
   );
 }
