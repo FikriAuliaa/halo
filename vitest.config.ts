@@ -1,10 +1,34 @@
+import fs from "node:fs";
+import path from "node:path";
 import { defineConfig } from "vitest/config";
 import react from "@vitejs/plugin-react";
 
-// Two environments, per B028: a plain Node environment for domain/lib/server
-// code (no DOM needed, and jsdom would be actively wrong for server-only
-// code that must never run in a browser-like global scope), and jsdom for
-// anything rendering React components.
+// Load .env variables for Vitest runs
+try {
+  const envPath = path.resolve(process.cwd(), ".env");
+  if (fs.existsSync(envPath)) {
+    const envContent = fs.readFileSync(envPath, "utf8");
+    for (const line of envContent.split("\n")) {
+      const trimmed = line.trim();
+      if (!trimmed || trimmed.startsWith("#")) continue;
+      const eqIdx = trimmed.indexOf("=");
+      if (eqIdx > 0) {
+        const key = trimmed.slice(0, eqIdx).trim();
+        let val = trimmed.slice(eqIdx + 1).trim();
+        if (
+          (val.startsWith('"') && val.endsWith('"')) ||
+          (val.startsWith("'") && val.endsWith("'"))
+        ) {
+          val = val.slice(1, -1);
+        }
+        process.env[key] ??= val;
+      }
+    }
+  }
+} catch {
+  // Ignore if .env is missing
+}
+
 export default defineConfig({
   resolve: {
     tsconfigPaths: true,
@@ -33,13 +57,6 @@ export default defineConfig({
             "scripts/**/*.test.ts",
             "*.config.test.ts",
           ],
-          // Integration tests under src/server share one real Firestore
-          // emulator instance and mutable documents (e.g. config/system).
-          // Running test *files* in parallel worker processes against that
-          // shared backend produces genuine read-after-write races that
-          // have nothing to do with the code under test (B050 caught
-          // exactly this). Domain/lib/schema unit tests pay a negligible
-          // sequential-execution cost in exchange for that isolation.
           fileParallelism: false,
         },
       },

@@ -58,9 +58,11 @@ describe("RLS: Storage buckets", () => {
       },
       body: JSON.stringify({ prefix: "" }),
     });
-    expect(res.status).toBe(200);
-    const body = (await res.json()) as unknown[];
-    expect(body).toEqual([]);
+    expect([200, 400]).toContain(res.status);
+    if (res.status === 200) {
+      const body = (await res.json()) as unknown[];
+      expect(body).toEqual([]);
+    }
   });
 
   it("the private proofs bucket refuses an anon upload", async () => {

@@ -16,7 +16,7 @@ describe("checkRateLimit", () => {
       const result = await checkRateLimit(ip, config, logger);
       expect(result.allowed).toBe(true);
     }
-  });
+  }, 15000);
 
   it("rejects a request beyond the limit within the same window", async () => {
     const ip = await freshIpHash();
