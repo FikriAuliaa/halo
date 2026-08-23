@@ -19,24 +19,11 @@ jobs:
             export NVM_DIR="$HOME/.nvm"
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
-            # 1. Masuk ke folder halo
             cd /var/www/halo
-
-            # 2. Tarik kode terbaru
             git pull origin main
-
-            # 3. Install dependencies
             pnpm install --frozen-lockfile
-
-            # 4. Migrasi database Supabase
             NODE_OPTIONS="--dns-result-order=ipv4first" pnpm migrate
-
-            # 5. Build Next.js standalone
             pnpm build
-
-            # 6. Salin aset statis
             cp -r public .next/standalone/
             cp -r .next/static .next/standalone/.next/
-
-            # 7. Restart PM2 halo-kampus
             pm2 restart halo-kampus
