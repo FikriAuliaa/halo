@@ -1,0 +1,73 @@
+name: Nightly
+
+# The slow, high-repetition checks B125 asks to keep off the PR pipeline:
+# the reservation-concurrency guarantee (B063's core correctness claim)
+# repeated well beyond what a PR should have to wait for, and the full
+# E2E suite across both viewport projects instead of just mobile.
+#
+# There is no standalone, dedicated concurrency test *suite* in this repo
+# yet (B066's formal suite was explicitly deferred — see the Phase 6 gate
+# report; the guarantee itself was verified live via direct 20-way
+# concurrent load, not through a maintained test file). Until that suite
+# exists, this workflow's "repetition" is the E2E suite's own Scenario B
+# (`scenarios-a-e.spec.ts`), repeated, which is a real if narrower
+# substitute — documented here rather than silently overstating coverage.
+on:
+  schedule:
+    - cron: "0 18 * * *" # 01:00 WIB
+  workflow_dispatch:
+
+env:
+  SUPABASE_URL: http://127.0.0.1:54321
+  SUPABASE_SERVICE_ROLE_KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZS1kZW1vIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImV4cCI6MTk4MzgxMjk5Nn0.EGIM96RAZx35lJzdJsyH-qQwv8Hdp7fsn3W0YpN81IU
+  DATABASE_URL: postgresql://postgres:postgres@127.0.0.1:54322/postgres
+  SESSION_COOKIE_SECRET: ci-only-32-character-minimum-secret-value
+
+jobs:
+  concurrency-and-full-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - run: supabase start
+      - run: pnpm run seed
+      - run: pnpm run seed:config
+      - name: Bootstrap admin accounts
+        run: |
+          echo "TestPassword123!" | pnpm run bootstrap-admin -- --email=admin@halo.test
+          pnpm exec tsx -e "
+            import { supabaseAdmin } from './src/lib/supabase-admin';
+            import { sql } from './src/server/db/client';
+            (async () => {
+              const { data, error } = await supabaseAdmin.auth.admin.createUser({
+                email: 'kampus@halo.test',
+                password: 'TestPassword123!',
+                email_confirm: true,
+              });
+              if (error || !data.user) throw error ?? new Error('user creation failed');
+              await sql\`insert into admin_users (user_id, role) values (\${data.user.id}, 'ADMIN_KAMPUS')\`;
+              process.exit(0);
+            })();
+          "
+      - run: pnpm exec playwright install --with-deps chromium webkit
+
+      - name: Reservation concurrency, repeated 25x
+        run: pnpm exec playwright test e2e/scenarios-a-e.spec.ts -g "Scenario B" --project=mobile --repeat-each=25
+
+      - name: Full E2E suite, both viewports plus the WebKit smoke check
+        run: pnpm run test:e2e --project=mobile --project=desktop --project=webkit-smoke
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: nightly-playwright-report
+          path: playwright-report/
+          retention-days: 14
