@@ -1,0 +1,42 @@
+name: Deploy to VPS
+
+on:
+  push:
+    branches: [master]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Deploy via SSH
+        uses: appleboy/ssh-action@v1.0.0
+        with:
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
+          port: ${{ secrets.VPS_PORT }}
+          key: ${{ secrets.VPS_SSH_KEY }}
+          script: |
+            export NVM_DIR="$HOME/.nvm"
+            [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+
+            # 1. Masuk ke folder halo
+            cd /var/www/halo
+
+            # 2. Tarik kode terbaru
+            git pull origin main
+
+            # 3. Install dependencies
+            pnpm install --frozen-lockfile
+
+            # 4. Migrasi database Supabase
+            NODE_OPTIONS="--dns-result-order=ipv4first" pnpm migrate
+
+            # 5. Build Next.js standalone
+            pnpm build
+
+            # 6. Salin aset statis
+            cp -r public .next/standalone/
+            cp -r .next/static .next/standalone/.next/
+
+            # 7. Restart PM2 halo-kampus
+            pm2 restart halo-kampus
