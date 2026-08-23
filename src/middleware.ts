@@ -44,9 +44,9 @@ function buildCsp(nonce: string): string {
   return [
     `default-src 'self'`,
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
-    `style-src 'self' 'unsafe-inline'`,
+    `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
     `img-src 'self' data: blob: ${supabaseOrigin}`.trim(),
-    `font-src 'self'`,
+    `font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com data:`,
     // Needs the same Supabase origin as `img-src`: the QRIS "Simpan QR"
     // button `fetch()`s the already-displayed image itself to build a
     // same-origin `blob:` URL, since a plain `<a download>` is silently
