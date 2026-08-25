@@ -13,6 +13,7 @@ export interface AvailableNumberProjection {
   id: string;
   number: string;
   display: string;
+  taken?: boolean | undefined;
 }
 
 export interface GetAvailableNumbersResult {
@@ -49,6 +50,7 @@ export async function getAvailableNumbers(
       id: doc.number,
       number: doc.number,
       display: formatPhoneDisplay(doc.number),
+      taken: false,
     })),
   };
 }

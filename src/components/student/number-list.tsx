@@ -20,6 +20,7 @@ export interface NumberItem {
   id: string;
   number: string;
   display: string;
+  taken?: boolean | undefined;
 }
 
 export interface NumberListProps {
@@ -33,7 +34,7 @@ const SEARCH_DEBOUNCE_MS = 300;
 
 const REASON_MESSAGES: Record<NonNullable<NumberListProps["reason"]>, string> = {
   expired: "Waktu reservasi Anda telah berakhir. Silakan pilih nomor lagi.",
-  "taken-over": "Nomor tersebut sudah diambil pihak lain. Silakan pilih nomor lain.",
+  "taken-over": "Nomor tersebut sudah diambil oleh pembeli lain. Silakan pilih nomor lain.",
   "no-reservation": "Silakan pilih nomor untuk memulai pemesanan.",
 };
 
@@ -103,7 +104,7 @@ export function NumberList({ initialNumbers, initialError, reason }: NumberListP
     setRefreshing(true);
     void fetchNumbers({
       suffix: search || undefined,
-      exclude: numbers.map((n) => n.number),
+      exclude: numbers.filter((n) => !n.taken).map((n) => n.number),
     }).finally(() => setRefreshing(false));
   }
 
@@ -120,11 +121,16 @@ export function NumberList({ initialNumbers, initialError, reason }: NumberListP
       }
     } catch {
       // The chosen number was taken between render and tap — a normal
-      // race students will genuinely hit (B073), not a crash: it's
-      // quietly dropped and the list refreshes.
-      showToast("info", "Nomor tersebut baru saja dipesan orang lain. Silakan pilih nomor lain.");
+      // race students will genuinely hit (B073). Mark it visually as taken!
+      showToast(
+        "info",
+        "Nomor tersebut baru saja diambil oleh pembeli lain. Silakan pilih nomor lain.",
+      );
+      const currentSelected = selected;
       setSelected(null);
-      void fetchNumbers({ suffix: search || undefined, exclude: [selected] });
+      setNumbers((prev) =>
+        prev.map((n) => (n.number === currentSelected ? { ...n, taken: true } : n)),
+      );
     }
   }
 
@@ -158,9 +164,10 @@ export function NumberList({ initialNumbers, initialError, reason }: NumberListP
         {reason ? (
           <div
             role="status"
-            className="rounded-field bg-surface-container-high px-sm py-sm font-body text-body-sm text-on-surface"
+            className="flex items-center gap-2 rounded-field border border-outline-variant/40 bg-surface-container-high px-sm py-sm font-body text-body-sm text-on-surface"
           >
-            {REASON_MESSAGES[reason]}
+            <span className="material-symbols-outlined text-secondary-container">info</span>
+            <span>{REASON_MESSAGES[reason]}</span>
           </div>
         ) : null}
 
@@ -198,6 +205,7 @@ export function NumberList({ initialNumbers, initialError, reason }: NumberListP
                       number={n.number}
                       display={n.display}
                       selected={selected === n.number}
+                      taken={n.taken}
                       onSelect={() => setSelected(n.number)}
                     />
                   ))}
