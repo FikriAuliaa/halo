@@ -24,12 +24,19 @@ function randomAlphabetString(length: number, alphabet: string): string {
   return result;
 }
 
-/** `HALO-XXXXXXXXX` — public, low-guessability identifier. Not a secret. */
-export function generateOrderRef(): string {
+/** `generateOrderRef(phone?, seq?)` — Generates a simple, human-friendly order reference: e.g. `08112345678-001`.
+ * Falls back to legacy random format if called without arguments. */
+export function generateOrderRef(phone?: string, sequence?: number): string {
+  if (phone) {
+    const seqStr = String(sequence ?? 1).padStart(3, "0");
+    const digitsOnly = phone.replace(/\D/g, "");
+    return `${digitsOnly}-${seqStr}`;
+  }
   return `HALO-${randomAlphabetString(9, CROCKFORD_ALPHABET)}`;
 }
 
-export const ORDER_REF_PATTERN = /^HALO-[0123456789ABCDEFGHJKMNPQRSTVWXYZ]{9}$/;
+export const ORDER_REF_PATTERN =
+  /^(HALO-[0123456789ABCDEFGHJKMNPQRSTVWXYZ]{9}|[0-9]{8,15}-[0-9]{3,6})$/;
 
 function toBase64Url(bytes: Uint8Array): string {
   let binary = "";

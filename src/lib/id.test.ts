@@ -13,6 +13,16 @@ describe("generateOrderRef", () => {
     expect(generateOrderRef()).toMatch(ORDER_REF_PATTERN);
   });
 
+  it("supports simple phone-based format e.g. 08112345678-001", () => {
+    const ref = generateOrderRef("08112345678", 1);
+    expect(ref).toBe("08112345678-001");
+    expect(ref).toMatch(ORDER_REF_PATTERN);
+
+    const ref2 = generateOrderRef("0812-9876-5432", 42);
+    expect(ref2).toBe("081298765432-042");
+    expect(ref2).toMatch(ORDER_REF_PATTERN);
+  });
+
   it("never contains the excluded ambiguous characters I, L, O, U in its random suffix", () => {
     for (let i = 0; i < 1000; i++) {
       const suffix = generateOrderRef().slice("HALO-".length);

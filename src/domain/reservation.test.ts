@@ -9,8 +9,10 @@ import {
 } from "./reservation";
 
 describe("mintOrderRef", () => {
-  it("matches the documented HALO-XXXXXXXXX pattern", () => {
+  it("matches the documented pattern and supports phone-based format", () => {
     expect(mintOrderRef()).toMatch(ORDER_REF_PATTERN);
+    expect(mintOrderRef("08112345678", 1)).toBe("08112345678-001");
+    expect(mintOrderRef("08112345678", 1)).toMatch(ORDER_REF_PATTERN);
   });
 
   it("produces no collisions across 100,000 generations", () => {

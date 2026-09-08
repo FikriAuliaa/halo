@@ -26,9 +26,9 @@ export interface Reservation {
   tracking_token_hash: string;
 }
 
-/** `HALO-XXXXXXXXX`, Crockford Base32, CSPRNG — see `src/lib/id.ts`. */
-export function mintOrderRef(): string {
-  return generateOrderRef();
+/** Generates order ref: e.g. `08112345678-001` or fallback `HALO-XXXXXXXXX` */
+export function mintOrderRef(phone?: string, sequence?: number): string {
+  return generateOrderRef(phone, sequence);
 }
 
 /**
