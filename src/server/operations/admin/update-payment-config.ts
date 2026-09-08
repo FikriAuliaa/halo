@@ -11,6 +11,7 @@ const MAX_BYTES = 5 * 1024 * 1024;
 
 export interface AdminUpdatePaymentConfigInput {
   payment_label: string;
+  qris_payload?: string | undefined;
   /** Present only when the admin is also replacing the QRIS image. */
   qrImage?: File;
   /** Required (and must be `true`) whenever `qrImage` is present. */
@@ -68,7 +69,12 @@ export async function adminUpdatePaymentConfig(
     );
   }
 
-  const after = { qr_image_path: qrImagePath, payment_label: input.payment_label };
+  const after = {
+    qr_image_path: qrImagePath,
+    payment_label: input.payment_label,
+    qris_payload:
+      input.qris_payload !== undefined ? input.qris_payload : (existing?.qris_payload ?? null),
+  };
 
   await withTransaction(async (tx) => {
     await deps.config.setPayment(after, tx);
@@ -79,7 +85,11 @@ export async function adminUpdatePaymentConfig(
       entity_type: "config",
       entity_id: "payment",
       before: existing
-        ? { qr_image_path: existing.qr_image_path, payment_label: existing.payment_label }
+        ? {
+            qr_image_path: existing.qr_image_path,
+            payment_label: existing.payment_label,
+            qris_payload: existing.qris_payload,
+          }
         : null,
       after,
       reason: null,
@@ -87,7 +97,11 @@ export async function adminUpdatePaymentConfig(
   });
 
   const { data } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(qrImagePath);
-  return { qr_image_url: data.publicUrl, payment_label: after.payment_label };
+  return {
+    qr_image_url: data.publicUrl,
+    payment_label: after.payment_label,
+    qris_payload: after.qris_payload,
+  };
 }
 
 export function createAdminUpdatePaymentConfigDeps() {
