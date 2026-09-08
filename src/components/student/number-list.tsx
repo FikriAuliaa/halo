@@ -69,6 +69,66 @@ export function NumberList({ initialNumbers, initialError, reason }: NumberListP
     };
   }, []);
 
+  // Poll for active reservations in real time so other buyers immediately see "Sedang Dipilih"
+  useEffect(() => {
+    let timer: NodeJS.Timeout | null = null;
+
+    async function checkUnavailable() {
+      try {
+        const res = await fetch("/api/numbers/active-reservations");
+        if (!res.ok) return;
+        const data = (await res.json()) as { reservedNumbers: string[] };
+        const reservedSet = new Set(data.reservedNumbers);
+
+        setNumbers((prev) =>
+          prev.map((n) => {
+            const isReserved = reservedSet.has(n.number);
+            if (isReserved && !n.taken) {
+              return { ...n, taken: true };
+            }
+            if (!isReserved && n.taken) {
+              return { ...n, taken: false };
+            }
+            return n;
+          }),
+        );
+
+        setSelected((prevSelected) => {
+          if (prevSelected && reservedSet.has(prevSelected)) {
+            showToast(
+              "info",
+              "Nomor yang sempat kamu pilih baru saja diambil pembeli lain. Silakan pilih nomor lain.",
+            );
+            return null;
+          }
+          return prevSelected;
+        });
+      } catch {
+        // Background check error ignored
+      }
+    }
+
+    timer = setInterval(() => {
+      if (document.visibilityState === "visible") {
+        void checkUnavailable();
+      }
+    }, 3000);
+
+    function onVisibilityChange() {
+      if (document.visibilityState === "visible") {
+        void checkUnavailable();
+      }
+    }
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    window.addEventListener("focus", onVisibilityChange);
+
+    return () => {
+      if (timer) clearInterval(timer);
+      document.removeEventListener("visibilitychange", onVisibilityChange);
+      window.removeEventListener("focus", onVisibilityChange);
+    };
+  }, [showToast]);
+
   async function fetchNumbers(
     opts: { suffix?: string | undefined; exclude?: string[] | undefined } = {},
   ) {
