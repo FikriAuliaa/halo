@@ -74,6 +74,14 @@ export class OrderRepository {
     await db`update orders set ${db(fields)} where id = ${orderId}`;
   }
 
+  async findByRef(orderRef: string): Promise<OrderRow | null> {
+    const rows = await sql<OrderRow[]>`
+      select * from orders where order_ref = ${orderRef}
+      limit 1
+    `;
+    return rows[0] ?? null;
+  }
+
   /** ADR-005's lookup contract: an exact match on both halves is required;
    * the caller (getTrackingStatus) is responsible for treating "no match"
    * uniformly regardless of which half was wrong. */

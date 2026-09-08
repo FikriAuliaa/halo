@@ -24,19 +24,19 @@ interface TrackingResult {
  * long after their reservation itself has ended. */
 export function TrackingLookup() {
   const [orderRef, setOrderRef] = useState("");
-  const [trackingToken, setTrackingToken] = useState("");
   const [status, setStatus] = useState<"idle" | "loading" | "not-found" | "error">("idle");
   const [result, setResult] = useState<TrackingResult | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
+    if (!orderRef.trim()) return;
     setStatus("loading");
     setResult(null);
     try {
       const res = await fetch("/api/track", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ order_ref: orderRef.trim(), tracking_token: trackingToken.trim() }),
+        body: JSON.stringify({ order_ref: orderRef.trim() }),
       });
       if (res.status === 404) {
         setStatus("not-found");
@@ -62,7 +62,7 @@ export function TrackingLookup() {
             Lacak Pesanan
           </h1>
           <p className="font-body text-body-sm text-on-surface-variant">
-            Masukkan kode pemesanan dan token pelacakan yang kamu terima.
+            Masukkan kode pemesanan kamu untuk memeriksa status verifikasi pesanan.
           </p>
         </div>
 
@@ -72,16 +72,10 @@ export function TrackingLookup() {
             required
             value={orderRef}
             onChange={(e) => setOrderRef(e.target.value)}
-            placeholder="HALO-XXXXXXXXX"
-          />
-          <TextField
-            label="Token Pelacakan"
-            required
-            value={trackingToken}
-            onChange={(e) => setTrackingToken(e.target.value)}
+            placeholder="Contoh: 08123456789-001"
           />
           <Button type="submit" variant="primary" size="lg" loading={status === "loading"}>
-            Lacak
+            Lacak Pesanan
           </Button>
         </form>
 

@@ -46,7 +46,7 @@ export type SubmitOrderInput = z.infer<typeof submitOrderSchema>;
 /** `getTrackingStatus` — ADR-005: both halves of the pair are required. */
 export const trackingLookupSchema = z.object({
   order_ref: orderRefSchema,
-  tracking_token: trackingTokenSchema,
+  tracking_token: trackingTokenSchema.optional(),
 });
 export type TrackingLookupInput = z.infer<typeof trackingLookupSchema>;
 
