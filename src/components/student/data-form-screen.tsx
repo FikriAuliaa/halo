@@ -11,6 +11,8 @@ import { useReservation } from "@/hooks/use-reservation";
 import { useFormDraft } from "@/hooks/use-form-draft";
 import { personalDataFormSchema } from "@/schemas/order";
 
+import { OrderRefDialog } from "./order-ref-dialog";
+
 const APPROX_TTL_MS = 15 * 60_000;
 const EMPTY_VALUES: OrderFormValues = { full_name: "", university: "", whatsapp: "", email: "" };
 
@@ -31,6 +33,9 @@ export function DataFormScreen({
 
   const { draft, setDraft, clearDraft } = useFormDraft<OrderFormValues>(orderRef, EMPTY_VALUES);
   const [errors, setErrors] = useState<OrderFormErrors>({});
+  const [activeOrderRef, setActiveOrderRef] = useState(orderRef);
+  const [showOrderRefDialog, setShowOrderRefDialog] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
 
   function validateField(field: keyof OrderFormValues) {
     const result = personalDataFormSchema.safeParse(draft);
@@ -50,7 +55,7 @@ export function DataFormScreen({
     }
   }
 
-  function handleContinue() {
+  async function handleContinue() {
     const result = personalDataFormSchema.safeParse(draft);
     if (!result.success) {
       const nextErrors: OrderFormErrors = {};
@@ -61,7 +66,29 @@ export function DataFormScreen({
       setErrors(nextErrors);
       return;
     }
-    router.push("/bayar");
+
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/reservations/current", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ phone: draft.whatsapp }),
+      });
+      if (res.ok) {
+        const data = (await res.json()) as { order_ref: string };
+        setActiveOrderRef(data.order_ref);
+      }
+    } catch {
+      // Continue with current order reference if network blips
+    } finally {
+      setSubmitting(false);
+      setShowOrderRefDialog(true);
+    }
+  }
+
+  function handleDialogContinue() {
+    setShowOrderRefDialog(false);
+    router.push("/paket");
   }
 
   return (
@@ -75,19 +102,25 @@ export function DataFormScreen({
         />
       }
       bottomBar={
-        <Button variant="primary" size="lg" className="w-full" onClick={handleContinue}>
-          Lanjut ke Pembayaran
+        <Button
+          variant="primary"
+          size="lg"
+          className="w-full"
+          loading={submitting}
+          onClick={() => void handleContinue()}
+        >
+          Lanjut Pilih Paket
         </Button>
       }
     >
       <div className="flex flex-col gap-lg">
-        <StepIndicator currentStep={3} />
+        <StepIndicator currentStep={2} />
         <div className="flex flex-col gap-xs">
           <h1 className="font-display text-headline-lg-mobile text-on-surface md:text-headline-lg">
             Lengkapi Data Diri
           </h1>
           <p className="font-body text-body-sm text-on-surface-variant">
-            Data ini digunakan untuk mengonfirmasi pesanan dan mengirim informasi via WhatsApp.
+            Data ini digunakan untuk konfirmasi pesanan dan informasi paket Halo kamu.
           </p>
         </div>
         <OrderForm
@@ -98,6 +131,10 @@ export function DataFormScreen({
           onBlurField={validateField}
         />
       </div>
+
+      {showOrderRefDialog ? (
+        <OrderRefDialog open orderRef={activeOrderRef} onContinue={handleDialogContinue} />
+      ) : null}
     </StudentShell>
   );
 }
