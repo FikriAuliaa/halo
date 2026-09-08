@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="haloGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ED0226"/>
+      <stop offset="100%" stop-color="#A50015"/>
+    </linearGradient>
+    <filter id="subtleShadow" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="8" stdDeviation="12" flood-color="#000000" flood-opacity="0.3"/>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="110" fill="url(#haloGrad)"/>
+  <text x="256" y="285"
+        text-anchor="middle"
+        dominant-baseline="central"
+        fill="#FFFFFF"
+        font-family="-apple-system, BlinkMacSystemFont, 'Hanken Grotesk', 'Inter', 'Segoe UI', sans-serif"
+        font-weight="900"
+        font-size="140"
+        letter-spacing="-4"
+        filter="url(#subtleShadow)">Halo</text>
+  <circle cx="395" cy="180" r="14" fill="#FFFFFF" opacity="0.9"/>
+</svg>
