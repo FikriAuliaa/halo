@@ -11,6 +11,7 @@ export interface ValidReservation {
   reserved_until: string;
   order_ref: string;
   remaining_seconds: number;
+  unique_code?: number | null;
 }
 
 /**

@@ -64,7 +64,6 @@ export async function reserveNumber(
   // Minted once, before the transaction — see `mintTrackingToken`'s own
   // doc comment; a retried transaction body (e.g. after a serialization
   // failure) reuses the same minted values rather than wasting entropy.
-  const orderRef = mintOrderRef();
   const reservationId = mintReservationId();
   const { token, hash } = await mintTrackingToken();
 
@@ -77,20 +76,14 @@ export async function reserveNumber(
     serverEnv.RESERVATION_TTL_MINUTES_OVERRIDE ?? systemConfig.reservation_ttl_minutes;
 
   return withIdempotency(command.idempotencyKey, "reserveNumber", (tx) =>
-    reserveNumberInTransaction(
-      tx,
-      command,
-      { orderRef, reservationId, token, hash },
-      ttlMinutes,
-      deps,
-    ),
+    reserveNumberInTransaction(tx, command, { reservationId, token, hash }, ttlMinutes, deps),
   );
 }
 
 async function reserveNumberInTransaction(
   tx: postgres.TransactionSql,
   command: ReserveNumberCommand,
-  minted: { orderRef: string; reservationId: string; token: string; hash: string },
+  minted: { reservationId: string; token: string; hash: string },
   ttlMinutes: number,
   deps: ReserveNumberDeps,
 ): Promise<ReserveNumberResult> {
@@ -148,6 +141,11 @@ async function reserveNumberInTransaction(
 
   const reservedUntil = computeReservedUntil(now, ttlMinutes);
 
+  // Fetch the atomic daily sequence for unique code & order reference
+  const [seqResult] = await tx<{ seq: number }[]>`SELECT get_next_daily_sequence() as seq`;
+  const sequence = seqResult?.seq ?? 1;
+  const orderRef = mintOrderRef(number, sequence);
+
   await deps.numberRepo.updateFields(
     number,
     {
@@ -156,8 +154,9 @@ async function reserveNumberInTransaction(
       reserved_until: reservedUntil,
       session_id: sessionId,
       reservation_id: minted.reservationId,
-      order_ref: minted.orderRef,
+      order_ref: orderRef,
       tracking_token_hash: minted.hash,
+      unique_code: sequence,
     },
     tx,
   );
@@ -172,7 +171,7 @@ async function reserveNumberInTransaction(
   return {
     number,
     reserved_until: reservedUntil.toISOString(),
-    order_ref: minted.orderRef,
+    order_ref: orderRef,
     tracking_token: minted.token,
     now: now.toISOString(),
   };
