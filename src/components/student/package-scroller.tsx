@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { StudentShell } from "./student-shell";
 import { StepIndicator } from "./step-indicator";
@@ -14,7 +14,7 @@ import { useReservation } from "@/hooks/use-reservation";
 import { readFlowState, writeFlowState } from "@/lib/flow-state";
 import type { PackageEntry } from "@/server/db/types";
 
-const APPROX_TTL_MS = 15 * 60_000; // cosmetic only — the progress bar's start reference; the digits themselves come from the server.
+const APPROX_TTL_MS = 15 * 60_000;
 
 export interface PackageScrollerProps {
   initialPackages: PackageEntry[];
@@ -37,6 +37,38 @@ export function PackageScroller({
   );
   const [selected, setSelected] = useState<string | null>(() => readFlowState().selectedPackageId);
   const [staleCleared, setStaleCleared] = useState(false);
+
+  const scrollerRef = useRef<HTMLDivElement>(null);
+  const [canScrollLeft, setCanScrollLeft] = useState(false);
+  const [canScrollRight, setCanScrollRight] = useState(true);
+
+  function checkScroll() {
+    if (!scrollerRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = scrollerRef.current;
+    setCanScrollLeft(scrollLeft > 15);
+    setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 15);
+  }
+
+  useEffect(() => {
+    const el = scrollerRef.current;
+    if (!el) return;
+    checkScroll();
+    el.addEventListener("scroll", checkScroll, { passive: true });
+    window.addEventListener("resize", checkScroll);
+    return () => {
+      el.removeEventListener("scroll", checkScroll);
+      window.removeEventListener("resize", checkScroll);
+    };
+  }, [packages]);
+
+  function handleScroll(direction: "left" | "right") {
+    if (!scrollerRef.current) return;
+    const delta = scrollerRef.current.clientWidth * 0.75;
+    scrollerRef.current.scrollBy({
+      left: direction === "left" ? -delta : delta,
+      behavior: "smooth",
+    });
+  }
 
   useEffect(() => {
     if (selected && packages.length > 0 && !packages.some((p) => p.id === selected)) {
@@ -67,7 +99,7 @@ export function PackageScroller({
   function handleContinue() {
     if (!selected) return;
     writeFlowState({ selectedPackageId: selected });
-    router.push("/data");
+    router.push("/bayar");
   }
 
   return (
@@ -89,17 +121,23 @@ export function PackageScroller({
           disabled={!selected}
           onClick={handleContinue}
         >
-          Lanjut Isi Data Diri
+          Lanjut ke Pembayaran
         </Button>
       }
     >
       <div className="flex flex-col gap-lg">
-        <StepIndicator currentStep={2} />
+        <StepIndicator currentStep={3} />
 
         <div className="flex flex-col gap-xs">
           <h1 className="font-display text-headline-lg-mobile text-on-surface md:text-headline-lg">
             Koneksi Makin Puas dengan Paket Halo+
           </h1>
+          <p className="flex items-center justify-between font-body text-body-sm text-on-surface-variant">
+            <span>Pilih paket internet terbaik untuk nomor pilihanmu.</span>
+            <span className="flex items-center gap-1 text-[12px] font-medium text-secondary-container lg:hidden">
+              <span className="material-symbols-outlined text-[16px]">swipe</span> Geser pilihan
+            </span>
+          </p>
         </div>
 
         {staleCleared ? (
@@ -116,17 +154,45 @@ export function PackageScroller({
         ) : status === "loading" ? (
           <PackageScrollerSkeleton />
         ) : (
-          <div role="radiogroup" aria-label="Pilih paket Halo+">
-            <ResponsiveGrid behavior="scroll-until-desktop">
-              {packages.map((pkg) => (
-                <PackageCard
-                  key={pkg.id}
-                  pkg={pkg}
-                  selected={selected === pkg.id}
-                  onSelect={() => setSelected(pkg.id)}
-                />
-              ))}
-            </ResponsiveGrid>
+          <div className="group relative">
+            {/* Mobile Carousel Left Arrow */}
+            <button
+              type="button"
+              onClick={() => handleScroll("left")}
+              disabled={!canScrollLeft}
+              aria-label="Geser paket ke kiri"
+              className={`absolute -left-2 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-outline-variant/50 bg-surface-container-high/90 text-on-surface shadow-xl backdrop-blur transition-all active:scale-95 lg:hidden ${
+                !canScrollLeft ? "pointer-events-none opacity-0" : "opacity-100"
+              }`}
+            >
+              <span className="material-symbols-outlined text-[24px]">chevron_left</span>
+            </button>
+
+            <div role="radiogroup" aria-label="Pilih paket Halo+">
+              <ResponsiveGrid behavior="scroll-until-desktop" containerRef={scrollerRef}>
+                {packages.map((pkg) => (
+                  <PackageCard
+                    key={pkg.id}
+                    pkg={pkg}
+                    selected={selected === pkg.id}
+                    onSelect={() => setSelected(pkg.id)}
+                  />
+                ))}
+              </ResponsiveGrid>
+            </div>
+
+            {/* Mobile Carousel Right Arrow */}
+            <button
+              type="button"
+              onClick={() => handleScroll("right")}
+              disabled={!canScrollRight}
+              aria-label="Geser paket ke kanan"
+              className={`absolute -right-2 top-1/2 z-20 flex h-10 w-10 -translate-y-1/2 items-center justify-center rounded-full border border-outline-variant/50 bg-surface-container-high/90 text-on-surface shadow-xl backdrop-blur transition-all active:scale-95 lg:hidden ${
+                !canScrollRight ? "pointer-events-none opacity-0" : "opacity-100"
+              }`}
+            >
+              <span className="material-symbols-outlined text-[24px]">chevron_right</span>
+            </button>
           </div>
         )}
       </div>
