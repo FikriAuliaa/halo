@@ -1,4 +1,6 @@
+import { z } from "zod";
 import { AppError } from "@/lib/errors";
+import { generateOrderRef } from "@/lib/id";
 import {
   createValidateReservationDeps,
   validateReservation,
@@ -26,3 +28,36 @@ export const GET = createHandler({}, async ({ sessionId, logger }) => {
 
   return result;
 });
+
+export const PATCH = createHandler(
+  {
+    schema: z.object({
+      phone: z.string().min(8).max(18),
+    }),
+  },
+  async ({ input, sessionId }) => {
+    const deps = createValidateReservationDeps();
+    const result = await validateReservation(sessionId, deps);
+
+    if (result.status !== "valid") {
+      throw new AppError("RESERVATION_NOT_FOUND", "Tidak ada reservasi aktif yang valid.");
+    }
+
+    const numberRow = await deps.numberRepo.get(result.number);
+    if (!numberRow) {
+      throw new AppError("NOT_FOUND", "Nomor tidak ditemukan.");
+    }
+
+    const sequence = numberRow.unique_code ?? 1;
+    const newOrderRef = generateOrderRef(input.phone, sequence);
+
+    await deps.numberRepo.updateFields(result.number, {
+      order_ref: newOrderRef,
+    });
+
+    return {
+      order_ref: newOrderRef,
+      unique_code: sequence,
+    };
+  },
+);

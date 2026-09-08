@@ -132,9 +132,21 @@ async function reserveNumberInTransaction(
     const stillOwnedByThisSession =
       otherNumberRow?.session_id === sessionId && otherEffectiveStatus === "reserved";
     if (stillOwnedByThisSession) {
-      throw new AppError(
-        "NUMBER_UNAVAILABLE",
-        "Sesi Anda sudah memiliki reservasi aktif pada nomor lain.",
+      // User changed their mind and selected another number:
+      // Gracefully release the old number so they are not blocked with an error!
+      await deps.numberRepo.updateFields(
+        otherReservation.number,
+        {
+          status: "available",
+          reserved_at: null,
+          reserved_until: null,
+          session_id: null,
+          reservation_id: null,
+          order_ref: null,
+          tracking_token_hash: null,
+          unique_code: null,
+        },
+        tx,
       );
     }
   }

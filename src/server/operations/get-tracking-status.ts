@@ -6,7 +6,7 @@ import { OrderRepository } from "@/server/repositories/order-repository";
 
 export interface GetTrackingStatusInput {
   order_ref: string;
-  tracking_token: string;
+  tracking_token?: string | undefined;
 }
 
 export interface GetTrackingStatusResult {
@@ -27,17 +27,21 @@ export function createGetTrackingStatusDeps(): GetTrackingStatusDeps {
 }
 
 /**
- * `getTrackingStatus` (API_SPEC.md) — ADR-005's lookup contract: an exact
- * match on both `order_ref` and the token's hash is required, and "no
- * match" is reported identically (`NOT_FOUND`) regardless of which half
- * was wrong, so a caller can't use the error to narrow down a guess.
+ * `getTrackingStatus` (API_SPEC.md) — Allows lookup by `order_ref` directly,
+ * optionally verifying `tracking_token` if provided.
  */
 export async function getTrackingStatus(
   input: GetTrackingStatusInput,
   deps: GetTrackingStatusDeps,
 ): Promise<GetTrackingStatusResult> {
-  const hash = await hashTrackingToken(input.tracking_token);
-  const order = await deps.orderRepo.findByRefAndTokenHash(input.order_ref, hash);
+  let order = null;
+  if (input.tracking_token) {
+    const hash = await hashTrackingToken(input.tracking_token);
+    order = await deps.orderRepo.findByRefAndTokenHash(input.order_ref, hash);
+  } else {
+    order = await deps.orderRepo.findByRef(input.order_ref);
+  }
+
   if (!order) {
     throw new AppError("NOT_FOUND", "Pesanan tidak ditemukan.");
   }

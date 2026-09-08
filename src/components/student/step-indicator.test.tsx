@@ -19,9 +19,9 @@ describe("StepIndicator", () => {
     expect(items[3]).not.toHaveAttribute("aria-current");
   });
 
-  it('announces "step 2 of 4: Paket" via the accessible label', () => {
+  it('announces "step 2 of 4: Data" via the accessible label', () => {
     render(<StepIndicator currentStep={2} />);
-    expect(screen.getByLabelText("Langkah 2 dari 4: Paket")).toBeInTheDocument();
+    expect(screen.getByLabelText("Langkah 2 dari 4: Data")).toBeInTheDocument();
   });
 
   it("shows a checkmark for completed steps", () => {

@@ -41,11 +41,15 @@ export function StudentShell({
   return (
     <div className={`mx-auto flex min-h-screen w-full flex-col ${WIDTH_CLASSES[width]}`}>
       <header className="sticky top-0 z-40 flex items-center justify-between bg-gradient-to-b from-surface-container-highest to-transparent px-container-margin py-md">
-        <div className="flex flex-col leading-none">
-          <span className="font-display text-[32px] italic tracking-tighter text-white">5G</span>
-          <span className="text-[8px] font-normal uppercase italic tracking-wider text-gray-400">
-            Powered by AI
-          </span>
+        <div className="flex items-center gap-2.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/icons/icon-192.png" alt="Halo" className="h-8 w-8 rounded-lg shadow-sm" />
+          <div className="flex flex-col leading-none">
+            <span className="font-display text-[26px] italic tracking-tighter text-white">5G</span>
+            <span className="text-[8px] font-normal uppercase italic tracking-wider text-gray-400">
+              Powered by AI
+            </span>
+          </div>
         </div>
         <div className="font-display text-[32px] font-extrabold tracking-tight text-white">
           Halo

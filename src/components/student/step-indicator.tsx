@@ -1,6 +1,6 @@
 export type StepStatus = "completed" | "current" | "upcoming";
 
-const STEPS = ["Nomor", "Paket", "Data", "Bayar"] as const;
+const STEPS = ["Nomor", "Data", "Paket", "Bayar"] as const;
 
 export interface StepIndicatorProps {
   /** 1-indexed current step, 1-4. */

@@ -55,11 +55,12 @@ describe("submitOrderSchema", () => {
 });
 
 describe("trackingLookupSchema", () => {
-  it("requires both order_ref and tracking_token", () => {
+  it("accepts lookup with order_ref alone or with optional tracking_token", () => {
     expect(
       trackingLookupSchema.safeParse({ order_ref: "HALO-ABCDEFGHJ", tracking_token: "t" }).success,
     ).toBe(true);
-    expect(trackingLookupSchema.safeParse({ order_ref: "HALO-ABCDEFGHJ" }).success).toBe(false);
+    expect(trackingLookupSchema.safeParse({ order_ref: "HALO-ABCDEFGHJ" }).success).toBe(true);
+    expect(trackingLookupSchema.safeParse({ order_ref: "08123456789-001" }).success).toBe(true);
     expect(trackingLookupSchema.safeParse({ tracking_token: "t" }).success).toBe(false);
   });
 });

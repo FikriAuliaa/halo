@@ -61,22 +61,16 @@ export default function ConfirmationPage() {
           Pesanan Berhasil Dikirim
         </h1>
         <p className="font-body text-body-sm text-on-surface-variant">
-          Bukti pembayaran kamu sedang ditinjau oleh admin. Periksa status pesanan kapan saja
-          melalui halaman Lacak Pesanan, menggunakan kode dan token pelacakan yang sudah kamu
-          simpan.
+          Bukti pembayaran kamu sedang ditinjau oleh admin. Simpan kode pemesanan di bawah ini untuk
+          memeriksa status pesanan kamu kapan saja di halaman Lacak Pesanan.
         </p>
 
         {orderRef ? (
           <div className="flex items-center gap-sm rounded-field bg-surface-container-high px-md py-sm">
-            <span className="font-display text-title-md text-on-surface">{orderRef}</span>
-            <CopyButton value={orderRef} />
+            <span className="font-display text-title-md font-bold text-primary">{orderRef}</span>
+            <CopyButton value={orderRef} label="Salin" />
           </div>
         ) : null}
-
-        <p className="font-body text-body-sm text-on-surface-variant">
-          Token pelacakan sudah ditampilkan satu kali saat kamu memesan nomor dan tidak dapat
-          ditampilkan ulang di sini.
-        </p>
 
         {data ? (
           <ConfirmationCard

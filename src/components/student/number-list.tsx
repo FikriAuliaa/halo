@@ -6,7 +6,6 @@ import { StudentShell } from "./student-shell";
 import { StepIndicator } from "./step-indicator";
 import { NumberCard } from "./number-card";
 import { RefreshButton } from "./refresh-button";
-import { TrackingTokenDialog } from "./tracking-token-dialog";
 import { ResponsiveGrid } from "@/components/ui/responsive-grid";
 import { NumberGridSkeleton } from "@/components/ui/skeletons/number-grid-skeleton";
 import { EmptyState, EMPTY_STATE_PRESETS } from "@/components/ui/empty-state";
@@ -55,10 +54,6 @@ export function NumberList({ initialNumbers, initialError, reason }: NumberListP
   const [refreshing, setRefreshing] = useState(false);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<string | null>(null);
-  const [savedCredentials, setSavedCredentials] = useState<{
-    orderRef: string;
-    trackingToken: string;
-  } | null>(null);
   const abortRef = useRef<AbortController | null>(null);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -171,14 +166,8 @@ export function NumberList({ initialNumbers, initialError, reason }: NumberListP
   async function handleContinue() {
     if (!selected) return;
     try {
-      const result = await reserve(selected);
-      if (result.tracking_token) {
-        // Only ever non-null on the call that actually creates the
-        // reservation — the one moment this plaintext exists (B062).
-        setSavedCredentials({ orderRef: result.order_ref, trackingToken: result.tracking_token });
-      } else {
-        router.push("/paket");
-      }
+      await reserve(selected);
+      router.push("/data");
     } catch {
       // The chosen number was taken between render and tap — a normal
       // race students will genuinely hit (B073). Mark it visually as taken!
@@ -205,7 +194,7 @@ export function NumberList({ initialNumbers, initialError, reason }: NumberListP
           loading={reserving}
           onClick={handleContinue}
         >
-          Lanjut Pilih Paket
+          Lanjut Isi Data Diri
         </Button>
       }
     >
@@ -275,15 +264,6 @@ export function NumberList({ initialNumbers, initialError, reason }: NumberListP
           </>
         )}
       </div>
-
-      {savedCredentials ? (
-        <TrackingTokenDialog
-          open
-          orderRef={savedCredentials.orderRef}
-          trackingToken={savedCredentials.trackingToken}
-          onContinue={() => router.push("/paket")}
-        />
-      ) : null}
     </StudentShell>
   );
 }

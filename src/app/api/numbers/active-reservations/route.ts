@@ -7,14 +7,16 @@ import { createHandler } from "@/server/framework/handler";
  * so client screens can proactively mark them as "Sedang Dipilih" / unavailable
  * across all connected devices in real time.
  */
-export const GET = createHandler({}, async () => {
-  const rows = await sql<{ number: string }[]>`
-    SELECT number FROM numbers
+export const GET = createHandler({}, async ({ sessionId }) => {
+  const rows = await sql<{ number: string; session_id: string | null }[]>`
+    SELECT number, session_id FROM numbers
     WHERE (status = 'reserved' AND reserved_until > NOW())
        OR status IN ('pending', 'sold', 'sold_offline')
   `;
 
   return {
-    reservedNumbers: rows.map((r) => r.number),
+    reservedNumbers: rows
+      .filter((r) => !sessionId || r.session_id !== sessionId)
+      .map((r) => r.number),
   };
 });
