@@ -8,6 +8,7 @@ import type { AdminRole } from "@/schemas/admin";
 interface PaymentConfig {
   qr_image_url: string | null;
   payment_label: string | null;
+  qris_payload?: string | null;
 }
 
 export function PaymentConfigClient({ role }: { role: AdminRole }) {
@@ -15,6 +16,7 @@ export function PaymentConfigClient({ role }: { role: AdminRole }) {
   const [config, setConfig] = useState<PaymentConfig | null>(null);
   const [state, setState] = useState<"loading" | "idle" | "error">("loading");
   const [label, setLabel] = useState("");
+  const [qrisPayload, setQrisPayload] = useState("");
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [scanConfirmed, setScanConfirmed] = useState(false);
@@ -31,6 +33,7 @@ export function PaymentConfigClient({ role }: { role: AdminRole }) {
       const body = (await res.json()) as PaymentConfig;
       setConfig(body);
       setLabel(body.payment_label ?? "");
+      setQrisPayload(body.qris_payload ?? "");
       setState("idle");
     } catch {
       setState("error");
@@ -62,6 +65,7 @@ export function PaymentConfigClient({ role }: { role: AdminRole }) {
     try {
       const formData = new FormData();
       formData.set("payment_label", label);
+      formData.set("qris_payload", qrisPayload);
       formData.set("scan_confirmed", String(scanConfirmed));
       if (file) formData.set("qr_image", file);
 
@@ -210,6 +214,27 @@ export function PaymentConfigClient({ role }: { role: AdminRole }) {
                 onChange={(e) => setLabel(e.target.value)}
                 placeholder="Masukkan label pembayaran"
                 className="font-body-lg w-full border-none bg-transparent px-md py-sm text-body-lg text-on-surface placeholder-outline-variant focus:outline-none focus:ring-0 disabled:opacity-50"
+              />
+            </div>
+          </div>
+
+          {/* QRIS Payload Section */}
+          <div>
+            <label className="font-body-sm mb-xs block text-body-sm text-[#A0A0A0]">
+              Payload QRIS Statis (EMVCo String)
+            </label>
+            <p className="font-body-sm mb-xs text-xs text-outline">
+              Masukkan string QRIS mentah (contoh: 000201010211...) agar sistem otomatis membuat
+              QRIS dinamis dengan nominal unik (+1, +2, dst.) untuk tiap pembeli.
+            </p>
+            <div className="relative rounded-lg border-b-2 border-transparent bg-[#2A2A2A] transition-colors focus-within:border-primary-container">
+              <textarea
+                rows={3}
+                disabled={!canEdit}
+                value={qrisPayload}
+                onChange={(e) => setQrisPayload(e.target.value)}
+                placeholder="000201010211..."
+                className="w-full resize-none border-none bg-transparent px-md py-sm font-mono text-body-sm text-on-surface placeholder-outline-variant focus:outline-none focus:ring-0 disabled:opacity-50"
               />
             </div>
           </div>
