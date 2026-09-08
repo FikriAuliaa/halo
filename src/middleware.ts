@@ -23,7 +23,7 @@ function generateNonce(): string {
  * at request time rather than hardcoded, so this doesn't silently break
  * or silently stay too permissive across environments.
  */
-function buildCsp(nonce: string): string {
+function buildCsp(nonce: string, request?: NextRequest): string {
   const supabaseOrigin = (() => {
     try {
       return new URL(process.env.SUPABASE_URL ?? "").origin;
@@ -32,14 +32,12 @@ function buildCsp(nonce: string): string {
     }
   })();
 
-  // Next.js's dev-mode webpack bundle (React Refresh / HMR) evaluates
-  // module wrappers via `eval`, and its hot-reload client connects over
-  // a same-origin websocket — both are inert in a production build.
-  // Found live: a strict CSP with no `unsafe-eval` silently broke *all*
-  // client-side JS execution in dev mode (a `PAGEERROR` for every page
-  // load), which a static-HTML/header check alone never surfaces —
-  // caught only once a real browser (Playwright) actually ran the page.
   const isDev = process.env.NODE_ENV !== "production";
+  const isLocal = request
+    ? request.nextUrl.hostname === "localhost" ||
+      request.nextUrl.hostname === "127.0.0.1" ||
+      request.nextUrl.protocol === "http:"
+    : false;
 
   return [
     `default-src 'self'`,
@@ -47,24 +45,12 @@ function buildCsp(nonce: string): string {
     `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
     `img-src 'self' data: blob: ${supabaseOrigin}`.trim(),
     `font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com data:`,
-    // Needs the same Supabase origin as `img-src`: the QRIS "Simpan QR"
-    // button `fetch()`s the already-displayed image itself to build a
-    // same-origin `blob:` URL, since a plain `<a download>` is silently
-    // ignored by every browser for a cross-origin `href`.
     `connect-src 'self' ${supabaseOrigin}${isDev ? " ws:" : ""}`.trim(),
     `object-src 'none'`,
     `base-uri 'self'`,
     `form-action 'self'`,
     `frame-ancestors 'none'`,
-    // Only in production: WebKit/Safari enforces this far more
-    // aggressively than Chromium — it upgrades every *subresource*
-    // request to HTTPS even when the top-level page itself is plain
-    // HTTP, which is exactly what a local `next dev` server is. Found
-    // live: every CSS/JS/font request failed with a TLS error in
-    // Safari (and Playwright's WebKit), because the dev server has no
-    // HTTPS listener to upgrade to — the page loaded, but nothing else
-    // did. A real deployment is HTTPS already, so this is a no-op there.
-    ...(isDev ? [] : ["upgrade-insecure-requests"]),
+    ...(isDev || isLocal ? [] : ["upgrade-insecure-requests"]),
   ].join("; ");
 }
 
@@ -95,7 +81,7 @@ export function middleware(request: NextRequest) {
 
   const response = NextResponse.next({ request: { headers: requestHeaders } });
 
-  response.headers.set("Content-Security-Policy", buildCsp(nonce));
+  response.headers.set("Content-Security-Policy", buildCsp(nonce, request));
   response.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains");
   response.headers.set("X-Content-Type-Options", "nosniff");
   response.headers.set("X-Frame-Options", "DENY");
