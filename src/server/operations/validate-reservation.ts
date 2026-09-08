@@ -9,6 +9,7 @@ export type ValidateReservationResult =
       reserved_until: string;
       order_ref: string;
       remaining_seconds: number;
+      unique_code?: number | null;
     }
   | { status: "expired"; number: string }
   | { status: "not_found" }
@@ -52,18 +53,17 @@ export async function validateReservation(
 
   if (numberRow.reservation_id === reservationId) {
     const effectiveStatus = getEffectiveStatus(numberRow, now);
-    // `pending` (the student has since submitted the order) still counts
-    // as valid here — the reservation record itself remains correct.
-    if (effectiveStatus === "reserved" || numberRow.status === "pending") {
+    if (effectiveStatus === "reserved" && numberRow.reserved_until !== null) {
       return {
         status: "valid",
         number,
-        reserved_until: numberRow.reserved_until!.toISOString(),
+        reserved_until: numberRow.reserved_until.toISOString(),
         order_ref: numberRow.order_ref!,
         remaining_seconds: Math.max(
           0,
-          Math.round((numberRow.reserved_until!.getTime() - now.getTime()) / 1000),
+          Math.round((numberRow.reserved_until.getTime() - now.getTime()) / 1000),
         ),
+        unique_code: numberRow.unique_code ?? null,
       };
     }
     return { status: "expired", number };

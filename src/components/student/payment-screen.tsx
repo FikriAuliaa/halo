@@ -34,6 +34,8 @@ export interface PaymentScreenProps {
   reservedUntil: string;
   qrImageUrl: string | null;
   paymentLabel: string;
+  qrisPayload?: string | null | undefined;
+  uniqueCode?: number | null | undefined;
 }
 
 /**
@@ -50,6 +52,8 @@ export function PaymentScreen({
   reservedUntil: initialReservedUntil,
   qrImageUrl,
   paymentLabel,
+  qrisPayload,
+  uniqueCode,
 }: PaymentScreenProps) {
   const router = useRouter();
   const { reservedUntil, now, revalidate } = useReservation();
@@ -58,6 +62,8 @@ export function PaymentScreen({
   const [pkg] = useState<PackageEntry | null>(
     () => packages.find((p) => p.id === readFlowState().selectedPackageId) ?? null,
   );
+
+  const totalAmount = pkg ? pkg.price + (uniqueCode ?? 0) : null;
 
   useEffect(() => {
     // No package selection survived (a fresh tab, a cleared session) —
@@ -217,7 +223,12 @@ export function PaymentScreen({
           Selesaikan Pembayaran
         </h1>
 
-        <QrisPanel qrImageUrl={qrImageUrl} paymentLabel={paymentLabel} />
+        <QrisPanel
+          qrImageUrl={qrImageUrl}
+          paymentLabel={paymentLabel}
+          qrisPayload={qrisPayload}
+          totalAmount={totalAmount}
+        />
 
         {pkg ? (
           <OrderSummary
@@ -225,6 +236,7 @@ export function PaymentScreen({
             packageLabel={pkg.label}
             packagePrice={pkg.price}
             orderRef={orderRef}
+            uniqueCode={uniqueCode}
           />
         ) : null}
 

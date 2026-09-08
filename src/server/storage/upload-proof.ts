@@ -36,7 +36,10 @@ export async function uploadProof(file: File, orderId: string): Promise<{ path: 
     upsert: false,
   });
   if (error) {
-    throw new AppError("INTERNAL", "Gagal mengunggah bukti pembayaran.");
+    throw new AppError(
+      "INTERNAL",
+      `Gagal mengunggah bukti pembayaran: ${error.message || "kesalahan penyimpanan"}`,
+    );
   }
 
   return { path: `${BUCKET}/${path}` };

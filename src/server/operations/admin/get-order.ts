@@ -13,6 +13,7 @@ export interface AdminOrderDetail {
   package_id: string;
   package_label: string;
   price_at_order: number;
+  unique_code?: number | null;
   status: string;
   submitted_at: string;
   verified_at: string | null;
@@ -47,6 +48,7 @@ export async function adminGetOrder(
     package_id: order.package_id,
     package_label: pkg?.label ?? order.package_id,
     price_at_order: order.price_at_order,
+    unique_code: order.unique_code ?? null,
     status: order.status,
     submitted_at: order.submitted_at.toISOString(),
     verified_at: order.verified_at ? order.verified_at.toISOString() : null,

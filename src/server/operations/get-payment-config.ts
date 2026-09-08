@@ -5,6 +5,7 @@ import { configRepository } from "@/server/repositories/config-repository";
 export interface GetPaymentConfigResult {
   qr_image_url: string;
   payment_label: string;
+  qris_payload?: string | null;
 }
 
 const BUCKET = "payment-assets";
@@ -19,5 +20,9 @@ export async function getPaymentConfig(): Promise<GetPaymentConfigResult> {
     throw new AppError("NOT_FOUND", "Konfigurasi pembayaran belum tersedia.");
   }
   const { data } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(config.qr_image_path);
-  return { qr_image_url: data.publicUrl, payment_label: config.payment_label };
+  return {
+    qr_image_url: data.publicUrl,
+    payment_label: config.payment_label,
+    qris_payload: config.qris_payload ?? null,
+  };
 }

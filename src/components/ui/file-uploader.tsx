@@ -25,7 +25,7 @@ export interface FileUploaderProps {
   acceptHint?: string;
 }
 
-const CONVENIENCE_ACCEPT = "image/jpeg,image/png,image/webp";
+const CONVENIENCE_ACCEPT = "image/jpeg,image/png,image/webp,image/jpg,.jpg,.jpeg,.png,.webp";
 const CONVENIENCE_MAX_BYTES = 5 * 1024 * 1024;
 
 export function FileUploader({

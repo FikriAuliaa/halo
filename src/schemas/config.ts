@@ -36,6 +36,7 @@ export type AdminManageUniversitiesInput = z.infer<typeof adminManageUniversitie
 /** `adminUpdatePaymentConfig`. */
 export const adminUpdatePaymentConfigSchema = z.object({
   payment_label: z.string().min(1, "Label pembayaran wajib diisi"),
+  qris_payload: z.string().optional(),
 });
 export type AdminUpdatePaymentConfigInput = z.infer<typeof adminUpdatePaymentConfigSchema>;
 

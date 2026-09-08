@@ -18,9 +18,13 @@ const BUCKET = "payment-assets";
  * `ADMIN_TELKOMSEL`-only. */
 export const GET = createHandler({ requireRole: "any" }, async () => {
   const doc = await configRepository.getPayment();
-  if (!doc) return { qr_image_url: null, payment_label: null };
+  if (!doc) return { qr_image_url: null, payment_label: null, qris_payload: null };
   const { data } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(doc.qr_image_path);
-  return { qr_image_url: data.publicUrl, payment_label: doc.payment_label };
+  return {
+    qr_image_url: data.publicUrl,
+    payment_label: doc.payment_label,
+    qris_payload: doc.qris_payload ?? null,
+  };
 });
 
 /**
@@ -34,8 +38,10 @@ export const POST = createHandler(
     if (!admin) throw new AppError("UNAUTHENTICATED", "Autentikasi diperlukan.");
 
     const formData = await request.formData();
+    const rawPayload = formData.get("qris_payload");
     const parsed = adminUpdatePaymentConfigSchema.safeParse({
       payment_label: formData.get("payment_label"),
+      qris_payload: typeof rawPayload === "string" ? rawPayload.trim() : undefined,
     });
     if (!parsed.success) {
       const issue = parsed.error.issues[0];
@@ -53,6 +59,7 @@ export const POST = createHandler(
     return adminUpdatePaymentConfig(
       {
         payment_label: parsed.data.payment_label,
+        qris_payload: parsed.data.qris_payload,
         ...(qrImage instanceof File ? { qrImage } : {}),
         scanConfirmed,
       },

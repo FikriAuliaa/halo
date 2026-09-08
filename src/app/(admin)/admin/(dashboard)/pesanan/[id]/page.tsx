@@ -24,6 +24,7 @@ interface OrderDetail {
   email: string;
   package_label: string;
   price_at_order: number;
+  unique_code?: number | null;
   status: "pending" | "verified" | "rejected";
   submitted_at: string;
   verified_at: string | null;
@@ -165,9 +166,16 @@ export default function OrderDetailPage() {
               <span className="font-body text-body-sm text-on-surface-variant">
                 Jumlah yang Diharapkan
               </span>
-              <span className="font-display text-title-md text-primary">
-                {formatCurrencyIDR(order.price_at_order)}
-              </span>
+              <div className="text-right">
+                <span className="font-display text-title-md font-bold text-primary">
+                  {formatCurrencyIDR(order.price_at_order)}
+                </span>
+                {order.unique_code ? (
+                  <span className="block font-body text-xs font-medium text-secondary">
+                    (Termasuk kode unik +{formatCurrencyIDR(order.unique_code)})
+                  </span>
+                ) : null}
+              </div>
             </div>
             <div className="flex items-center justify-between">
               <span className="font-body text-body-sm text-on-surface-variant">Diajukan</span>

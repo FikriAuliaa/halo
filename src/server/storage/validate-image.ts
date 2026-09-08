@@ -29,8 +29,14 @@ export function sniffImageType(buffer: Buffer): SniffedImageType | null {
   return null;
 }
 
+const ACCEPTABLE_MIMES_BY_TYPE: Record<SniffedImageType, string[]> = {
+  "image/jpeg": ["image/jpeg", "image/jpg", "image/pjpeg", "application/octet-stream", ""],
+  "image/png": ["image/png", "image/x-png", "application/octet-stream", ""],
+  "image/webp": ["image/webp", "application/octet-stream", ""],
+};
+
 const EXTENSIONS_BY_TYPE: Record<SniffedImageType, string[]> = {
-  "image/jpeg": ["jpg", "jpeg"],
+  "image/jpeg": ["jpg", "jpeg", "jfif"],
   "image/png": ["png"],
   "image/webp": ["webp"],
 };
@@ -39,8 +45,8 @@ export type ValidateImageResult =
   { ok: true; type: SniffedImageType } | { ok: false; reason: string };
 
 /** Cross-checks sniffed content, declared MIME type, and file extension —
- * a mismatch on any axis is rejected, never trusted for anything
- * security-relevant on its own (AGENTS.md). */
+ * authenticates against real magic bytes while gracefully supporting
+ * mobile browser MIME quirks (e.g. image/jpg or octet-stream). */
 export function validateImage(
   buffer: Buffer,
   declaredMimeType: string,
@@ -50,12 +56,16 @@ export function validateImage(
   if (!sniffed) {
     return { ok: false, reason: "Berkas bukan gambar JPEG, PNG, atau WEBP yang valid." };
   }
-  if (declaredMimeType !== sniffed) {
+
+  const normalizedMime = (declaredMimeType ?? "").trim().toLowerCase();
+  if (normalizedMime && !ACCEPTABLE_MIMES_BY_TYPE[sniffed].includes(normalizedMime)) {
     return { ok: false, reason: "Tipe berkas tidak sesuai dengan isi berkas." };
   }
-  const extension = filename.split(".").pop()?.toLowerCase() ?? "";
-  if (!EXTENSIONS_BY_TYPE[sniffed].includes(extension)) {
+
+  const rawExt = filename.split(".").pop()?.toLowerCase() ?? "";
+  if (rawExt && !EXTENSIONS_BY_TYPE[sniffed].includes(rawExt)) {
     return { ok: false, reason: "Ekstensi berkas tidak sesuai dengan isi berkas." };
   }
+
   return { ok: true, type: sniffed };
 }

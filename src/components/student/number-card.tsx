@@ -15,7 +15,7 @@ export function NumberCard({
   display,
   selected,
   taken = false,
-  takenLabel = "Sudah Diambil",
+  takenLabel = "Sedang Dipilih",
   onSelect,
 }: NumberCardProps) {
   return (

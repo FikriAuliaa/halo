@@ -20,6 +20,7 @@ export interface NumberRow {
   tracking_token_hash: string | null;
   sold_at: Date | null;
   sold_channel: "online" | "offline" | null;
+  unique_code?: number | null;
   updated_at: Date;
 }
 
@@ -41,6 +42,7 @@ export interface OrderRow {
   verified_by: string | null;
   admin_note: string | null;
   price_at_order: number;
+  unique_code?: number | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -69,6 +71,7 @@ export interface PackageEntry {
 export interface PaymentConfigDoc {
   qr_image_path: string;
   payment_label: string;
+  qris_payload?: string | null;
   updated_at: Date;
 }
 

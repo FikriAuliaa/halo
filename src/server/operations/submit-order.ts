@@ -10,6 +10,8 @@ import { requireSession } from "@/server/session/session";
 import { uploadProof } from "@/server/storage/upload-proof";
 import type { OrderFormInput } from "@/schemas/order";
 
+import { SessionRepository } from "@/server/session/session-repository";
+
 export interface SubmitOrderCommand {
   sessionId: string;
   idempotencyKey: string;
@@ -20,11 +22,17 @@ export interface SubmitOrderCommand {
 export interface SubmitOrderDeps {
   numberRepo: NumberRepository;
   orderRepo: OrderRepository;
+  sessionRepo: SessionRepository;
   logger: Logger;
 }
 
 export function createSubmitOrderDeps(logger: Logger): SubmitOrderDeps {
-  return { numberRepo: new NumberRepository(), orderRepo: new OrderRepository(), logger };
+  return {
+    numberRepo: new NumberRepository(),
+    orderRepo: new OrderRepository(),
+    sessionRepo: new SessionRepository(),
+    logger,
+  };
 }
 
 /**
@@ -154,6 +162,9 @@ async function submitOrderInTransaction(
   }
 
   const submittedAt = new Date();
+  const uniqueCode = numberRow.unique_code ?? null;
+  const finalPrice = price + (uniqueCode ?? 0);
+
   await deps.orderRepo.create(
     {
       id: orderId,
@@ -172,20 +183,20 @@ async function submitOrderInTransaction(
       verified_at: null,
       verified_by: null,
       admin_note: null,
-      price_at_order: price,
+      price_at_order: finalPrice,
+      unique_code: uniqueCode,
     },
     tx,
   );
 
-  // Reservation fields are cleared (no longer at risk of TTL expiry) but
-  // the session link and the reservation/order identity stay in place —
-  // `validateReservation` and the confirmation/tracking screens still
-  // need them (ADR-003's reserved -> pending transition, B085).
+  // Reservation is converted into a pending order.
+  // Release reservation hold and session association so this device can place further orders seamlessly.
   await deps.numberRepo.updateFields(
     number,
-    { status: "pending", reserved_at: null, reserved_until: null },
+    { status: "pending", reserved_at: null, reserved_until: null, session_id: null },
     tx,
   );
+  await deps.sessionRepo.setCurrentReservation(sessionId, null, tx);
 
   return {
     order_ref: orderRef,
