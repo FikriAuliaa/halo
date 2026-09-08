@@ -1,70 +1,137 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import QRCode from "qrcode";
 import { ErrorState } from "@/components/ui/error-state";
+import { makeDynamicQris } from "@/domain/qris";
+import { formatCurrencyIDR } from "@/lib/format";
 
 export interface QrisPanelProps {
   qrImageUrl: string | null;
   paymentLabel: string;
+  qrisPayload?: string | null | undefined;
+  totalAmount?: number | null | undefined;
 }
 
 /**
  * The QR must scan reliably from another device's camera (B081) — never
  * below 200px, adequate quiet-zone padding via the panel's own padding,
- * and it does not shrink on small screens. Missing config is an explicit
- * error state, not a broken `<img>`.
+ * and it does not shrink on small screens. Supports dynamic EMVCo QRIS
+ * with automatically populated transaction nominal.
  */
-export function QrisPanel({ qrImageUrl, paymentLabel }: QrisPanelProps) {
+export function QrisPanel({ qrImageUrl, paymentLabel, qrisPayload, totalAmount }: QrisPanelProps) {
   const [downloading, setDownloading] = useState(false);
+  const [dynamicQrDataUrl, setDynamicQrDataUrl] = useState<string | null>(null);
+  const [isDynamic, setIsDynamic] = useState(false);
 
-  if (!qrImageUrl) {
+  useEffect(() => {
+    let active = true;
+
+    async function generateDynamic() {
+      if (qrisPayload && totalAmount && totalAmount > 0) {
+        try {
+          const dynamicString = makeDynamicQris(qrisPayload, totalAmount);
+          const dataUrl = await QRCode.toDataURL(dynamicString, {
+            width: 320,
+            margin: 2,
+            color: {
+              dark: "#000000",
+              light: "#ffffff",
+            },
+          });
+          if (active) {
+            setDynamicQrDataUrl(dataUrl);
+            setIsDynamic(true);
+          }
+          return;
+        } catch (err) {
+          console.warn("Failed to generate dynamic QRIS, falling back to static image:", err);
+        }
+      }
+      if (active) {
+        setDynamicQrDataUrl(null);
+        setIsDynamic(false);
+      }
+    }
+
+    void generateDynamic();
+    return () => {
+      active = false;
+    };
+  }, [qrisPayload, totalAmount]);
+
+  const activeImageUrl = dynamicQrDataUrl ?? qrImageUrl;
+
+  if (!activeImageUrl) {
     return <ErrorState variant="server" />;
   }
-  const imageUrl = qrImageUrl;
 
   async function handleDownload() {
     setDownloading(true);
     try {
-      // A plain `<a download href={qrImageUrl}>` doesn't work: `download`
-      // is ignored by every browser for a cross-origin URL (this image
-      // lives in Supabase Storage, a different origin from the app even
-      // in local dev) — clicking it just opened the image instead of
-      // saving it. Fetching it ourselves and pointing the link at a
-      // same-origin `blob:` URL is the actual fix.
-      const res = await fetch(imageUrl);
-      if (!res.ok) throw new Error("fetch failed");
-      const blob = await res.blob();
-      const blobUrl = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = blobUrl;
-      link.download = "qris-halo.png";
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(blobUrl);
+      if (dynamicQrDataUrl) {
+        const link = document.createElement("a");
+        link.href = dynamicQrDataUrl;
+        link.download = `qris-halo-${totalAmount ?? "payment"}.png`;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        return;
+      }
+
+      if (qrImageUrl) {
+        const res = await fetch(qrImageUrl);
+        if (!res.ok) throw new Error("fetch failed");
+        const blob = await res.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = blobUrl;
+        link.download = "qris-halo.png";
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(blobUrl);
+      }
     } catch {
-      // Fall back to opening the image directly — the user can still
-      // save it manually (e.g. long-press on mobile), better than the
-      // button silently doing nothing.
-      window.open(imageUrl, "_blank");
+      if (qrImageUrl) {
+        window.open(qrImageUrl, "_blank");
+      }
     } finally {
       setDownloading(false);
     }
   }
 
   return (
-    <div className="flex flex-col items-center gap-sm rounded-card border border-outline-variant bg-surface-container p-lg">
-      <p className="font-body text-body-sm text-on-surface-variant">{paymentLabel}</p>
-      {/* Remote, admin-controlled asset — not a build-time-known static
-          import, so next/image's optimizer offers little here. */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={qrImageUrl}
-        alt={`Kode QRIS untuk ${paymentLabel}`}
-        className="h-auto w-full min-w-[200px] max-w-[280px]"
-        width={280}
-        height={280}
-      />
+    <div className="flex flex-col items-center gap-sm rounded-card border border-outline-variant bg-surface-container p-lg text-center">
+      <div className="flex flex-col items-center gap-1">
+        <p className="font-body text-body-sm font-semibold text-on-surface">{paymentLabel}</p>
+        {isDynamic ? (
+          <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-emerald-400">
+            <span className="material-symbols-outlined text-[13px]">bolt</span>
+            QRIS DINAMIS • NOMINAL OTOMATIS
+          </span>
+        ) : null}
+      </div>
+
+      <div className="rounded-xl bg-white p-2 shadow-md">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={activeImageUrl}
+          alt={`Kode QRIS untuk ${paymentLabel}`}
+          className="h-auto w-full min-w-[200px] max-w-[260px]"
+          width={260}
+          height={260}
+        />
+      </div>
+
+      {isDynamic && totalAmount ? (
+        <p className="max-w-[280px] font-body text-xs text-on-surface-variant">
+          Pindai dengan mobile banking atau e-wallet. Nominal{" "}
+          <strong className="text-on-surface">{formatCurrencyIDR(totalAmount)}</strong> akan terisi
+          otomatis.
+        </p>
+      ) : null}
+
       <button
         type="button"
         onClick={() => void handleDownload()}

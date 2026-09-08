@@ -11,10 +11,12 @@ export default async function PaymentPage() {
 
   let qrImageUrl: string | null = null;
   let paymentLabel = "";
+  let qrisPayload: string | null = null;
   try {
     const paymentConfig = await getPaymentConfig();
     qrImageUrl = paymentConfig.qr_image_url;
     paymentLabel = paymentConfig.payment_label;
+    qrisPayload = paymentConfig.qris_payload ?? null;
   } catch {
     // Missing config renders as an explicit error state in QrisPanel.
   }
@@ -27,6 +29,8 @@ export default async function PaymentPage() {
       reservedUntil={reservation.reserved_until}
       qrImageUrl={qrImageUrl}
       paymentLabel={paymentLabel}
+      qrisPayload={qrisPayload}
+      uniqueCode={reservation.unique_code}
     />
   );
 }
