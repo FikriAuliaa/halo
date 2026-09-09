@@ -20,10 +20,27 @@ jobs:
             [ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
 
             cd /var/www/halo
-            git pull origin main
+
+            # 1. Tarik branch master dan paksa sinkronisasi bersih
+            git fetch origin master
+            git checkout -B master origin/master
+            git reset --hard origin/master
+
+            # 2. Install dependencies
             pnpm install --frozen-lockfile
+
+            # 3. Migrasi database Supabase
             NODE_OPTIONS="--dns-result-order=ipv4first" pnpm migrate
+
+            # 4. Hapus build lama agar tidak menggunakan cache stale
+            rm -rf .next
+
+            # 5. Build ulang Next.js standalone
             pnpm build
+
+            # 6. Salin aset statis ke folder standalone
             cp -r public .next/standalone/
             cp -r .next/static .next/standalone/.next/
-            pm2 restart halo-kampus
+
+            # 7. Reload PM2
+            pm2 reload halo-kampus || pm2 restart halo-kampus
