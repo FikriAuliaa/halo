@@ -77,10 +77,17 @@ export function DataFormScreen({
       if (res.ok) {
         const data = (await res.json()) as { order_ref: string };
         setActiveOrderRef(data.order_ref);
+        if (typeof window !== "undefined") {
+          window.sessionStorage.setItem(`halo_form_draft_${data.order_ref}`, JSON.stringify(draft));
+          window.sessionStorage.setItem("halo_current_form_draft", JSON.stringify(draft));
+        }
       }
     } catch {
       // Continue with current order reference if network blips
     } finally {
+      if (typeof window !== "undefined") {
+        window.sessionStorage.setItem("halo_current_form_draft", JSON.stringify(draft));
+      }
       setSubmitting(false);
       setShowOrderRefDialog(true);
     }

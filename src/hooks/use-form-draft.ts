@@ -14,23 +14,80 @@ export function useFormDraft<T extends object>(namespace: string | null, initial
   const key = namespace ? `halo_form_draft_${namespace}` : null;
 
   const [value, setValue] = useState<T>(() => {
-    if (!key || typeof window === "undefined") return initial;
+    if (typeof window === "undefined") return initial;
     try {
-      const raw = window.sessionStorage.getItem(key);
-      return raw ? { ...initial, ...(JSON.parse(raw) as Partial<T>) } : initial;
+      if (key) {
+        const raw = window.sessionStorage.getItem(key);
+        if (raw) {
+          const parsed = JSON.parse(raw) as Partial<T>;
+          const hasContent = Object.values(parsed).some((v) => Boolean(v));
+          if (hasContent) {
+            return { ...initial, ...parsed };
+          }
+        }
+      }
+
+      // Fallback 1: halo_current_form_draft
+      const currentRaw = window.sessionStorage.getItem("halo_current_form_draft");
+      if (currentRaw) {
+        const parsed = JSON.parse(currentRaw) as Partial<T>;
+        const hasContent = Object.values(parsed).some((v) => Boolean(v));
+        if (hasContent) {
+          if (key) window.sessionStorage.setItem(key, currentRaw);
+          return { ...initial, ...parsed };
+        }
+      }
+
+      // Fallback 2: search any halo_form_draft_* key in sessionStorage
+      for (let i = 0; i < window.sessionStorage.length; i++) {
+        const k = window.sessionStorage.key(i);
+        if (k && k.startsWith("halo_form_draft_")) {
+          const item = window.sessionStorage.getItem(k);
+          if (item) {
+            const parsed = JSON.parse(item) as Partial<T>;
+            const hasContent = Object.values(parsed).some((v) => Boolean(v));
+            if (hasContent) {
+              if (key) window.sessionStorage.setItem(key, item);
+              return { ...initial, ...parsed };
+            }
+          }
+        }
+      }
+
+      return initial;
     } catch {
       return initial;
     }
   });
 
   useEffect(() => {
-    if (!key || typeof window === "undefined") return;
-    window.sessionStorage.setItem(key, JSON.stringify(value));
+    if (typeof window === "undefined") return;
+    const str = JSON.stringify(value);
+    if (key) {
+      window.sessionStorage.setItem(key, str);
+    }
+    const hasContent = Object.values(value).some((v) => Boolean(v));
+    if (hasContent) {
+      window.sessionStorage.setItem("halo_current_form_draft", str);
+    }
   }, [key, value]);
 
   function clear() {
-    if (key && typeof window !== "undefined") {
-      window.sessionStorage.removeItem(key);
+    if (typeof window !== "undefined") {
+      if (key) {
+        window.sessionStorage.removeItem(key);
+      }
+      window.sessionStorage.removeItem("halo_current_form_draft");
+      const toRemove: string[] = [];
+      for (let i = 0; i < window.sessionStorage.length; i++) {
+        const k = window.sessionStorage.key(i);
+        if (k && k.startsWith("halo_form_draft_")) {
+          toRemove.push(k);
+        }
+      }
+      for (const k of toRemove) {
+        window.sessionStorage.removeItem(k);
+      }
     }
     setValue(initial);
   }
