@@ -101,10 +101,15 @@ export function QrisPanel({ qrImageUrl, paymentLabel, qrisPayload, totalAmount }
     }
   }
 
+  const displayLabel =
+    !paymentLabel || paymentLabel.includes("(Placeholder)")
+      ? "Silakan scan QRIS dibawah ini"
+      : paymentLabel;
+
   return (
     <div className="flex flex-col items-center gap-sm rounded-card border border-outline-variant bg-surface-container p-lg text-center">
       <div className="flex flex-col items-center gap-1">
-        <p className="font-body text-body-sm font-semibold text-on-surface">{paymentLabel}</p>
+        <p className="font-body text-body-sm font-semibold text-on-surface">{displayLabel}</p>
         {isDynamic ? (
           <span className="inline-flex items-center gap-1 rounded-full border border-emerald-500/30 bg-emerald-500/10 px-2.5 py-0.5 text-[11px] font-bold tracking-wide text-emerald-400">
             <span className="material-symbols-outlined text-[13px]">bolt</span>

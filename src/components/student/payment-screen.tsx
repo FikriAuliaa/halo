@@ -70,7 +70,11 @@ export function PaymentScreen({
     // there's nothing to pay for; send the student back to pick one
     // rather than rendering a broken payment screen.
     if (!pkg) router.replace("/paket");
-  }, [pkg, router]);
+    else if (!draft.full_name || draft.full_name.trim().length < 2) {
+      // Personal data draft missing or incomplete — send back to fill data
+      router.replace("/data");
+    }
+  }, [pkg, draft.full_name, router]);
 
   const [file, setFile] = useState<File | null>(null);
   const [uploadState, setUploadState] = useState<FileUploaderState>("idle");
@@ -103,6 +107,13 @@ export function PaymentScreen({
 
   function submit() {
     if (!file || !pkg) return;
+    if (!draft.full_name || draft.full_name.trim().length < 2) {
+      setErrorMessage("Data diri belum terisi lengkap. Mengalihkan ke halaman data diri...");
+      setErrorCode("VALIDATION_ERROR");
+      setUploadState("error");
+      router.push("/data");
+      return;
+    }
     setUploadState("uploading");
     setProgress(0);
     setErrorMessage(undefined);
