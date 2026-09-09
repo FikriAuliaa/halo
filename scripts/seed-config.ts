@@ -100,7 +100,7 @@ export async function seedConfig(): Promise<void> {
   // path an admin must replace before production (B131 readiness check).
   await configRepository.setPayment({
     qr_image_path: "placeholders/qris-dev-placeholder.png",
-    payment_label: "QRIS Telkomsel Kampus (Placeholder)",
+    payment_label: "Silakan scan QRIS dibawah ini",
   });
 }
 
