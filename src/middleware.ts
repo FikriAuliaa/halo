@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { ADMIN_SESSION_COOKIE_NAME } from "@/server/auth/session-cookie";
+import { SESSION_COOKIE_NAME, createSessionCookie } from "@/server/framework/session";
 
 /** Middleware runs in the Edge runtime — no `node:crypto` there, only
  * the standard Web Crypto API. */
@@ -79,7 +80,27 @@ export function middleware(request: NextRequest) {
   const requestHeaders = new Headers(request.headers);
   requestHeaders.set("x-nonce", nonce);
 
+  let sessionCookieToSet: ReturnType<typeof createSessionCookie> | null = null;
+  if (!request.cookies.has(SESSION_COOKIE_NAME)) {
+    sessionCookieToSet = createSessionCookie();
+    const existingCookieHeader = request.headers.get("cookie");
+    const newCookieHeader = existingCookieHeader
+      ? `${existingCookieHeader}; ${SESSION_COOKIE_NAME}=${sessionCookieToSet.value}`
+      : `${SESSION_COOKIE_NAME}=${sessionCookieToSet.value}`;
+    requestHeaders.set("cookie", newCookieHeader);
+  }
+
   const response = NextResponse.next({ request: { headers: requestHeaders } });
+
+  if (sessionCookieToSet) {
+    response.cookies.set(sessionCookieToSet.name, sessionCookieToSet.value, {
+      httpOnly: sessionCookieToSet.httpOnly,
+      secure: sessionCookieToSet.secure,
+      sameSite: sessionCookieToSet.sameSite,
+      path: sessionCookieToSet.path,
+      maxAge: sessionCookieToSet.maxAge,
+    });
+  }
 
   response.headers.set("Content-Security-Policy", buildCsp(nonce, request));
   response.headers.set("Strict-Transport-Security", "max-age=63072000; includeSubDomains");

@@ -64,6 +64,9 @@ export function NumberList({ initialNumbers, initialError, reason }: NumberListP
     };
   }, []);
 
+  const reservingRef = useRef(reserving);
+  reservingRef.current = reserving;
+
   // Poll for active reservations in real time so other buyers immediately see "Sedang Dipilih"
   useEffect(() => {
     let timer: NodeJS.Timeout | null = null;
@@ -89,6 +92,10 @@ export function NumberList({ initialNumbers, initialError, reason }: NumberListP
         );
 
         setSelected((prevSelected) => {
+          if (reservingRef.current) {
+            // Never clear selection while user is currently in the middle of reserving!
+            return prevSelected;
+          }
           if (prevSelected && reservedSet.has(prevSelected)) {
             showToast(
               "info",
@@ -168,18 +175,26 @@ export function NumberList({ initialNumbers, initialError, reason }: NumberListP
     try {
       await reserve(selected);
       router.push("/data");
-    } catch {
-      // The chosen number was taken between render and tap — a normal
-      // race students will genuinely hit (B073). Mark it visually as taken!
-      showToast(
-        "info",
-        "Nomor tersebut baru saja diambil oleh pembeli lain. Silakan pilih nomor lain.",
-      );
-      const currentSelected = selected;
-      setSelected(null);
-      setNumbers((prev) =>
-        prev.map((n) => (n.number === currentSelected ? { ...n, taken: true } : n)),
-      );
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : "";
+      const isUnavailable =
+        errorMessage.includes("orang lain") ||
+        errorMessage.includes("NUMBER_UNAVAILABLE") ||
+        errorMessage.includes("tidak tersedia");
+
+      if (isUnavailable) {
+        showToast(
+          "info",
+          "Nomor tersebut baru saja diambil oleh pembeli lain. Silakan pilih nomor lain.",
+        );
+        const currentSelected = selected;
+        setSelected(null);
+        setNumbers((prev) =>
+          prev.map((n) => (n.number === currentSelected ? { ...n, taken: true } : n)),
+        );
+      } else {
+        showToast("error", errorMessage || "Gagal melakukan reservasi. Silakan coba lagi.");
+      }
     }
   }
 

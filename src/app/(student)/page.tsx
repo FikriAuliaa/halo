@@ -7,6 +7,8 @@ import {
 const VALID_REASONS = ["expired", "taken-over", "no-reservation"] as const;
 type Reason = (typeof VALID_REASONS)[number];
 
+export const dynamic = "force-dynamic";
+
 function parseReason(value: string | string[] | undefined): Reason | null {
   const raw = Array.isArray(value) ? value[0] : value;
   return VALID_REASONS.includes(raw as Reason) ? (raw as Reason) : null;
