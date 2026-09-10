@@ -42,11 +42,11 @@ function buildCsp(nonce: string, request?: NextRequest): string {
 
   return [
     `default-src 'self'`,
-    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDev ? " 'unsafe-eval'" : ""}`,
+    `script-src 'self' 'nonce-${nonce}' 'strict-dynamic' https://static.cloudflareinsights.com${isDev ? " 'unsafe-eval'" : ""}`,
     `style-src 'self' 'unsafe-inline' https://fonts.googleapis.com`,
     `img-src 'self' data: blob: ${supabaseOrigin}`.trim(),
     `font-src 'self' https://fonts.gstatic.com https://fonts.googleapis.com data:`,
-    `connect-src 'self' ${supabaseOrigin}${isDev ? " ws:" : ""}`.trim(),
+    `connect-src 'self' ${supabaseOrigin} https://cloudflareinsights.com${isDev ? " ws:" : ""}`.trim(),
     `object-src 'none'`,
     `base-uri 'self'`,
     `form-action 'self'`,

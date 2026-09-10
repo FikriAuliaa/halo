@@ -1,5 +1,5 @@
 // Service Worker for Halo Kampus PWA
-const CACHE_NAME = "halo-kampus-v1";
+const CACHE_NAME = "halo-kampus-v2";
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -32,12 +32,27 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("fetch", (event) => {
-  // Network first with fallback to cache for offline capabilities
   if (event.request.method !== "GET") return;
 
+  let url;
+  try {
+    url = new URL(event.request.url);
+  } catch {
+    return;
+  }
+
+  // Never intercept cross-origin requests (e.g. fonts.googleapis.com, cloudflare insights)
+  if (url.origin !== self.location.origin) return;
+
+  // Never intercept API routes or admin routes
+  if (url.pathname.startsWith("/api/") || url.pathname.startsWith("/admin")) return;
+
+  // Network first with cache fallback
   event.respondWith(
-    fetch(event.request).catch(() => {
-      return caches.match(event.request);
+    fetch(event.request).catch(async () => {
+      const cached = await caches.match(event.request);
+      if (cached) return cached;
+      return new Response("Offline", { status: 504, statusText: "Gateway Timeout" });
     }),
   );
 });
