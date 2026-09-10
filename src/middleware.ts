@@ -81,8 +81,15 @@ export function middleware(request: NextRequest) {
   requestHeaders.set("x-nonce", nonce);
 
   let sessionCookieToSet: ReturnType<typeof createSessionCookie> | null = null;
+  const isHttps =
+    request.nextUrl.protocol === "https:" || request.headers.get("x-forwarded-proto") === "https";
+  const shouldBeSecure =
+    process.env.COOKIE_SECURE !== undefined
+      ? process.env.COOKIE_SECURE === "true"
+      : process.env.NODE_ENV === "production" && isHttps;
+
   if (!request.cookies.has(SESSION_COOKIE_NAME)) {
-    sessionCookieToSet = createSessionCookie();
+    sessionCookieToSet = createSessionCookie(shouldBeSecure);
     const existingCookieHeader = request.headers.get("cookie");
     const newCookieHeader = existingCookieHeader
       ? `${existingCookieHeader}; ${SESSION_COOKIE_NAME}=${sessionCookieToSet.value}`
@@ -95,7 +102,7 @@ export function middleware(request: NextRequest) {
   if (sessionCookieToSet) {
     response.cookies.set(sessionCookieToSet.name, sessionCookieToSet.value, {
       httpOnly: sessionCookieToSet.httpOnly,
-      secure: sessionCookieToSet.secure,
+      secure: shouldBeSecure,
       sameSite: sessionCookieToSet.sameSite,
       path: sessionCookieToSet.path,
       maxAge: sessionCookieToSet.maxAge,

@@ -58,10 +58,12 @@ export async function runMigrations(): Promise<void> {
       { exists: boolean }[]
     >`SELECT EXISTS (SELECT 1 FROM information_schema.tables WHERE table_name = 'numbers') as exists`;
 
-    if (tableCheck?.exists) {
-      for (const file of files) {
-        await sql`INSERT INTO _migrations (name) VALUES (${file}) ON CONFLICT (name) DO NOTHING`;
-      }
+    const [migCount] = await sql<
+      { count: number }[]
+    >`SELECT COUNT(*)::int as count FROM _migrations`;
+
+    if ((migCount?.count ?? 0) === 0 && tableCheck?.exists) {
+      await sql`INSERT INTO _migrations (name) VALUES ('20260101000000_init.sql') ON CONFLICT (name) DO NOTHING`;
     }
 
     const executedRows = await sql<{ name: string }[]>`SELECT name FROM _migrations`;

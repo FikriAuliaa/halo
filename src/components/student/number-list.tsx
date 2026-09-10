@@ -176,6 +176,7 @@ export function NumberList({ initialNumbers, initialError, reason }: NumberListP
       await reserve(selected);
       router.push("/data");
     } catch (err: unknown) {
+      console.error("[handleContinue error]:", err);
       const errorMessage = err instanceof Error ? err.message : "";
       const isUnavailable =
         errorMessage.includes("orang lain") ||

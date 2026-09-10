@@ -13,4 +13,8 @@ fi
 
 # 2. Start Next.js standalone server
 echo "✨ Starting Next.js server on port ${PORT:-3000}..."
-exec node server.js
+ENV_ARGS=""
+if [ -f ".env" ]; then
+  ENV_ARGS="--env-file=.env"
+fi
+exec node $ENV_ARGS server.js

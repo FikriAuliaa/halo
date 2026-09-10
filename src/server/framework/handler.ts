@@ -153,7 +153,16 @@ export function createHandler<TSchema extends z.ZodTypeAny, TResult>(
       const input = parseInput(options.schema, rawBody);
 
       const cookieHeader = request.headers.get("cookie");
-      const { sessionId, cookie } = resolveSessionId(cookieHeader);
+      const isHttps =
+        request.url.startsWith("https:") || request.headers.get("x-forwarded-proto") === "https";
+      const { sessionId, cookie } = resolveSessionId(
+        cookieHeader,
+        process.env.COOKIE_SECURE !== undefined
+          ? process.env.COOKIE_SECURE === "true"
+          : process.env.NODE_ENV === "production"
+            ? isHttps
+            : false,
+      );
 
       const result = await handler({
         input,
