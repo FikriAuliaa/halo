@@ -13,6 +13,7 @@ import { Button } from "@/components/ui/button";
 import { useReservation } from "@/hooks/use-reservation";
 import { useFormDraft } from "@/hooks/use-form-draft";
 import { clearFlowState, readFlowState } from "@/lib/flow-state";
+import { safeRandomUUID } from "@/lib/id";
 import type { PackageEntry } from "@/server/db/types";
 
 const EMPTY_VALUES: OrderFormValues = { full_name: "", university: "", whatsapp: "", email: "" };
@@ -85,7 +86,7 @@ export function PaymentScreen({
   // Stable across retries of the *same* attempt — a retry after a network
   // failure must reuse this so a submission that actually succeeded
   // server-side is never duplicated (B084).
-  const idempotencyKeyRef = useRef<string>(crypto.randomUUID());
+  const idempotencyKeyRef = useRef<string>(safeRandomUUID());
 
   function handleFileSelected(selected: File) {
     setFile(selected);

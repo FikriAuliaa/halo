@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useCallback, useContext, useState } from "react";
+import { safeRandomUUID } from "@/lib/id";
 
 export type ToastVariant = "success" | "error" | "warning" | "info";
 
@@ -38,7 +39,7 @@ export function useToastState() {
   }, []);
 
   const showToast = useCallback((variant: ToastVariant, message: string) => {
-    const id = crypto.randomUUID();
+    const id = safeRandomUUID();
     setToasts((current) => {
       const next = [...current, { id, variant, message }];
       // Cap the stack at 3, dropping the oldest first.

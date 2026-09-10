@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { readFlowState, writeFlowState } from "@/lib/flow-state";
+import { safeRandomUUID } from "@/lib/id";
 
 export interface ReservationState {
   number: string | null;
@@ -52,7 +53,7 @@ export function useReservation() {
       const res = await fetch(`/api/numbers/${number}/reserve`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ idempotency_key: crypto.randomUUID() }),
+        body: JSON.stringify({ idempotency_key: safeRandomUUID() }),
       });
       const body = await res.json();
       if (!res.ok) {
