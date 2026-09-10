@@ -33,12 +33,19 @@ export function readSessionId(cookieHeader: string | null): string | null {
 
 /** Mints a fresh session ID and its cookie attributes, for `reserveNumber`
  * to set when a request arrives with none. */
-export function createSessionCookie(): SessionCookieAttributes {
+export function createSessionCookie(isSecure?: boolean): SessionCookieAttributes {
+  const secure =
+    isSecure !== undefined
+      ? isSecure
+      : process.env.COOKIE_SECURE !== undefined
+        ? process.env.COOKIE_SECURE === "true"
+        : process.env.NODE_ENV === "production";
+
   return {
     name: SESSION_COOKIE_NAME,
     value: generateSessionId(),
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure,
     sameSite: "lax",
     path: "/",
     maxAge: SESSION_COOKIE_MAX_AGE_SECONDS,
@@ -48,7 +55,10 @@ export function createSessionCookie(): SessionCookieAttributes {
 /** Resolves the caller's session ID from an existing cookie, minting a new
  * one only if absent — a single request never gets two different session
  * identities depending on which handler looks. */
-export function resolveSessionId(cookieHeader: string | null): {
+export function resolveSessionId(
+  cookieHeader: string | null,
+  isSecure?: boolean,
+): {
   sessionId: string;
   isNew: boolean;
   cookie: SessionCookieAttributes | null;
@@ -57,6 +67,6 @@ export function resolveSessionId(cookieHeader: string | null): {
   if (existing) {
     return { sessionId: existing, isNew: false, cookie: null };
   }
-  const cookie = createSessionCookie();
+  const cookie = createSessionCookie(isSecure);
   return { sessionId: cookie.value, isNew: true, cookie };
 }

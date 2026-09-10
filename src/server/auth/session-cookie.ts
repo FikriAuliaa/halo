@@ -43,12 +43,20 @@ export function readAdminSessionToken(cookieHeader: string | null): AdminSession
 
 export function createAdminSessionCookie(
   payload: AdminSessionPayload,
+  isSecure?: boolean,
 ): AdminSessionCookieAttributes {
+  const secure =
+    isSecure !== undefined
+      ? isSecure
+      : process.env.COOKIE_SECURE !== undefined
+        ? process.env.COOKIE_SECURE === "true"
+        : process.env.NODE_ENV === "production";
+
   return {
     name: ADMIN_SESSION_COOKIE_NAME,
     value: encodeURIComponent(JSON.stringify(payload)),
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure,
     sameSite: "strict",
     path: "/",
     maxAge: ADMIN_SESSION_MAX_AGE_SECONDS,
@@ -58,12 +66,19 @@ export function createAdminSessionCookie(
 /** `maxAge: 0` — the standard way to tell a browser to delete a cookie
  * immediately. Server-side revocation (the part that actually matters,
  * B096) happens separately via `supabaseAdmin.auth.admin.signOut`. */
-export function clearedAdminSessionCookie(): AdminSessionCookieAttributes {
+export function clearedAdminSessionCookie(isSecure?: boolean): AdminSessionCookieAttributes {
+  const secure =
+    isSecure !== undefined
+      ? isSecure
+      : process.env.COOKIE_SECURE !== undefined
+        ? process.env.COOKIE_SECURE === "true"
+        : process.env.NODE_ENV === "production";
+
   return {
     name: ADMIN_SESSION_COOKIE_NAME,
     value: "",
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure,
     sameSite: "strict",
     path: "/",
     maxAge: 0,
