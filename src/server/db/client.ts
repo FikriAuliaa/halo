@@ -33,6 +33,7 @@ function createSqlClient(): { sql: postgres.Sql; isPlaceholder: boolean } {
   const isPlaceholder = !connectionString;
   const client = postgres(connectionString ?? "postgres://unconfigured@127.0.0.1:54322/postgres", {
     onnotice: () => {},
+    prepare: false,
   });
   return { sql: client, isPlaceholder };
 }

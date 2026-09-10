@@ -55,12 +55,16 @@ export function useReservation() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ idempotency_key: safeRandomUUID() }),
       });
-      const body = await res.json();
+      const body = (await res.json().catch(() => null)) as
+        (ReserveResult & { now: string; error?: { message?: string } }) | null;
       if (!res.ok) {
-        throw new Error(body?.error?.message ?? "Gagal melakukan reservasi.");
+        throw new Error(body?.error?.message ?? "Gagal melakukan reservasi. Silakan coba lagi.");
+      }
+      if (!body || !body.number) {
+        throw new Error("Gagal melakukan reservasi. Silakan coba lagi.");
       }
 
-      const result = body as ReserveResult & { now: string };
+      const result = body;
       offsetRef.current = new Date(result.now).getTime() - Date.now();
       const reservedUntil = new Date(result.reserved_until);
       writeFlowState({
