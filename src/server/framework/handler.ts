@@ -132,7 +132,7 @@ export function createHandler<TSchema extends z.ZodTypeAny, TResult>(
     const logger = createLogger(correlationId);
 
     try {
-      const params = await routeContext.params;
+      const params = routeContext?.params ? await routeContext.params : {};
       const { admin, refreshedCookie } = await resolveAdmin(request);
 
       if (options.requireRole) {
